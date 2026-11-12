@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Ledger",
+    "slug": "expo-budget",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "ledger",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": { "supportsTablet": false, "bundleIdentifier": "com.example.ledger" },
+    "android": { "package": "com.example.ledger" },
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true }
+  }
+}

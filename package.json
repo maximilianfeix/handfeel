@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test dist/test/",
-    "lint": "tsc -p tsconfig.json --noEmit && node scripts/check-rules.mjs",
+    "lint": "tsc -p tsconfig.json && node scripts/check-rules.mjs",
     "docs": "npm run build && node scripts/gen-rules-doc.mjs",
     "prepack": "npm run build"
   },
