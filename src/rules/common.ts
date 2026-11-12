@@ -293,6 +293,45 @@ export function gradients(f: SourceFile, p: Project): Gradient[] {
   return out;
 }
 
+/**
+ * Lists of two or three colors stored under a gradient-like name, e.g. a workout's
+ * `colors: [Color(0xFF7C5CFF), Color(0xFFB04CFF)]` that a card later passes to LinearGradient.
+ * Lists inside a gradient call are already covered by gradients().
+ */
+function gradientColorLists(f: SourceFile, p: Project): Gradient[] {
+  if (f.lang === 'js') return [];
+  const out: Gradient[] = [];
+  const callRe =
+    f.lang === 'dart' ? /\b(?:Linear|Radial|Sweep)Gradient\s*\(/ : f.lang === 'kotlin' ? /\bBrush\.\w*Gradient\s*\(/ : /(?:Gradient|\.linearGradient|\.radialGradient)\s*\(/;
+  const inside: [number, number][] = [];
+  for (const m of matches(callRe, f.masked)) {
+    const span = callSpan(f.masked, m.index + m[0].length - 1);
+    if (span) inside.push(span.args);
+  }
+  const listRe = f.lang === 'kotlin' ? /\b(\w*(?:[Gg]radient|[Cc]olors))\s*(?:=|:)\s*listOf\s*\(/ : /\b(\w*(?:[Gg]radient|[Cc]olors))\s*:\s*(?:const\s+)?\[/;
+  for (const m of matches(listRe, f.masked)) {
+    if (inside.some(([a, b]) => m.index > a && m.index < b)) continue;
+    const open = m.index + m[0].length - 1;
+    const close = f.masked[open] === '(' || f.masked[open] === '[' ? callSpanEnd(f.masked, open) : -1;
+    if (close < 0) continue;
+    const text = f.code.slice(open + 1, close);
+    const colors = [...literalColorsIn(text, f.lang), ...resolveRefs(text, p)];
+    if (colors.length >= 2 && colors.length <= 3) out.push({ offset: m.index, colors });
+  }
+  return out;
+}
+
+function callSpanEnd(masked: string, open: number): number {
+  const o = masked[open];
+  const c = o === '(' ? ')' : ']';
+  let depth = 0;
+  for (let k = open; k < masked.length; k++) {
+    if (masked[k] === o) depth++;
+    else if (masked[k] === c && --depth === 0) return k;
+  }
+  return -1;
+}
+
 export const purpleGradient: Rule = {
   id: 'purple-gradient',
   title: 'Indigo-to-violet gradients',
@@ -306,6 +345,10 @@ export const purpleGradient: Rule = {
     for (const g of gradients(f, p)) {
       const purple = g.colors.filter(isAiPurple);
       if (purple.length) report(g.offset, `Gradient uses ${purple.map(hex6).join(', ')}, the indigo/violet band generated UIs default to.`);
+    }
+    for (const g of gradientColorLists(f, p)) {
+      const purple = g.colors.filter(isAiPurple);
+      if (purple.length) report(g.offset, `Gradient colors ${g.colors.map(hex6).join(' → ')} include the indigo/violet band generated UIs default to.`);
     }
   },
 };
