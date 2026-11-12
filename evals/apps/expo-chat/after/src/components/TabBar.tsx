@@ -1,8 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useApp } from '../state/AppContext';
+import { space, type } from '../theme';
 import { IconName, Tab } from '../types';
-import { Icon } from './ui';
+import { Icon, isAndroid, pressedOpacity } from './ui';
 
 const tabs: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'messages', label: 'Messages', icon: 'message-circle' },
@@ -10,28 +11,31 @@ const tabs: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'settings', label: 'Settings', icon: 'sliders' },
 ];
 
+// A platform-style tab bar: the selected tab is tinted (with the Material indicator
+// pill behind the icon on Android), instead of a filled accent block.
 export function TabBar({ active, onChange }: { active: Tab; onChange: (tab: Tab) => void }) {
   const { colors, unreadCount } = useApp();
-  return <View style={[styles.wrapper, { backgroundColor: colors.surface, borderTopColor: colors.line }]}>
-    <View style={[styles.bar, { backgroundColor: colors.soft }]} accessibilityRole="tablist">
-      {tabs.map(tab => {
-        const selected = active === tab.id;
-        return <Pressable key={tab.id} accessibilityRole="tab" accessibilityState={{ selected }} accessibilityLabel={`${tab.label}${tab.id === 'messages' && unreadCount ? `, ${unreadCount} unread` : ''}`} onPress={() => onChange(tab.id)}
-          style={({ pressed }) => [styles.tab, { backgroundColor: selected ? colors.green : 'transparent', opacity: pressed ? 0.7 : 1 }]}>
-          <View><Icon name={tab.icon} size={20} color={selected ? colors.onGreen : colors.secondary} />
-            {tab.id === 'messages' && unreadCount > 0 && !selected && <View style={[styles.dot, { backgroundColor: colors.green }]} />}
-          </View>
-          <Text style={[styles.label, { color: selected ? colors.onGreen : colors.secondary }]}>{tab.label}</Text>
-        </Pressable>;
-      })}
-    </View>
+  return <View style={[styles.bar, { backgroundColor: colors.surface, borderTopColor: colors.line }]} accessibilityRole="tablist">
+    {tabs.map(tab => {
+      const selected = active === tab.id;
+      const tint = selected ? colors.greenText : colors.secondary;
+      return <Pressable key={tab.id} accessibilityRole="tab" accessibilityState={{ selected }} accessibilityLabel={`${tab.label}${tab.id === 'messages' && unreadCount ? `, ${unreadCount} unread` : ''}`} onPress={() => onChange(tab.id)}
+        android_ripple={{ color: colors.ripple, borderless: true }}
+        style={({ pressed }) => [styles.tab, { opacity: pressedOpacity(pressed, 0.7) }]}>
+        <View style={[styles.indicator, isAndroid && selected && { backgroundColor: colors.selected }]}>
+          <Icon name={tab.icon} size={24} color={tint} />
+          {tab.id === 'messages' && unreadCount > 0 && !selected && <View style={[styles.dot, { backgroundColor: colors.green, borderColor: colors.surface }]} />}
+        </View>
+        <Text style={[styles.label, { color: tint }]} maxFontSizeMultiplier={1.6}>{tab.label}</Text>
+      </Pressable>;
+    })}
   </View>;
 }
 
 const styles = StyleSheet.create({
-  wrapper: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14, borderTopWidth: StyleSheet.hairlineWidth },
-  bar: { flexDirection: 'row', padding: 5, borderRadius: 22, gap: 4 },
-  tab: { flex: 1, minHeight: 53, gap: 5, alignItems: 'center', justifyContent: 'center', borderRadius: 17 },
-  label: { fontSize: 10, fontWeight: '600' },
-  dot: { width: 6, height: 6, borderRadius: 3, position: 'absolute', right: -4, top: -2 },
+  bar: { flexDirection: 'row', paddingHorizontal: space.xs, paddingTop: space.xxs, paddingBottom: space.xxs, borderTopWidth: StyleSheet.hairlineWidth },
+  tab: { flex: 1, minHeight: 56, gap: space.xxs, alignItems: 'center', justifyContent: 'center' },
+  indicator: { width: 64, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  label: { ...type.caption2, fontWeight: '600' },
+  dot: { width: 8, height: 8, borderRadius: 4, borderWidth: 1, position: 'absolute', right: 16, top: 2 },
 });

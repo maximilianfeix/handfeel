@@ -12,6 +12,14 @@ abstract final class StillBrand {
   static const line = Color(0xFFECE9F1);
 }
 
+/// Labels that sit on landscape artwork. The artwork is light in both modes,
+/// so these stay light too.
+abstract final class StillChip {
+  static const background = Color(0xCCFFFFFF);
+  static const accent = StillBrand.purple;
+  static const foreground = StillBrand.ink;
+}
+
 /// Per-session tint, part of the session data (artwork, not chrome).
 abstract final class SessionTints {
   static const lavender = Color(0xFFDAD0EB);

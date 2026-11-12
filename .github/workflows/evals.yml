@@ -1,0 +1,60 @@
+name: Evals
+
+on:
+  push:
+    branches: [main]
+    paths: ['evals/**', '.github/workflows/evals.yml']
+  pull_request:
+    paths: ['evals/**', '.github/workflows/evals.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flutter:
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [flutter-fitness, flutter-meditation]
+        variant: [before, after]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Analyze
+        working-directory: evals/apps/${{ matrix.app }}/${{ matrix.variant }}
+        run: |
+          flutter --version | head -1 | tee $RUNNER_TEMP/analyze.txt
+          flutter create --platforms=web --project-name app . > /dev/null
+          flutter pub get > /dev/null
+          set +e
+          flutter analyze --no-fatal-infos --no-fatal-warnings > $RUNNER_TEMP/out.txt 2>&1
+          echo "exit=$?" >> $RUNNER_TEMP/analyze.txt
+          set -e
+          cat $RUNNER_TEMP/out.txt >> $RUNNER_TEMP/analyze.txt
+          echo "errors=$(grep -c '^  error' $RUNNER_TEMP/out.txt || true) warnings=$(grep -c '^warning\|^  warning' $RUNNER_TEMP/out.txt || true) infos=$(grep -c '^   info\|^  info' $RUNNER_TEMP/out.txt || true)" | tee -a $RUNNER_TEMP/analyze.txt
+          cat $RUNNER_TEMP/analyze.txt
+      - name: Build web
+        working-directory: evals/apps/${{ matrix.app }}/${{ matrix.variant }}
+        run: flutter build web --release --no-tree-shake-icons
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Screenshots (light and dark)
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium > /dev/null
+          (cd evals/apps/${{ matrix.app }}/${{ matrix.variant }}/build/web && python3 -m http.server 8080 > /dev/null 2>&1 &)
+          sleep 2
+          node scripts/shoot.mjs http://localhost:8080 shots/${{ matrix.app }}-${{ matrix.variant }} / --wait=6000
+          node scripts/shoot.mjs http://localhost:8080 shots/${{ matrix.app }}-${{ matrix.variant }} / --dark --wait=6000
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.app }}-${{ matrix.variant }}
+          path: |
+            shots/
+            ${{ runner.temp }}/analyze.txt

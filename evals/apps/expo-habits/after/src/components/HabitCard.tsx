@@ -4,7 +4,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { todayKey } from '../dates';
 import { useHaptics } from '../haptics';
 import { currentStreak } from '../streaks';
-import { radius, readableOn, space, type, useTheme } from '../theme';
+import { radius, readableOn, space, font, useTheme } from '../theme';
 import { useStore } from '../store';
 import type { Habit } from '../types';
 
@@ -75,12 +75,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   emojiWrap: { minWidth: 52, minHeight: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  emoji: { ...type.title1 },
+  emoji: { ...font.title1 },
   body: { flex: 1, gap: space.xxs },
-  name: { ...type.headline },
+  name: { ...font.headline },
   strike: { opacity: 0.6, textDecorationLine: 'line-through' },
   streakRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
-  streak: { ...type.footnote, fontWeight: '500' },
+  streak: { ...font.footnote, fontWeight: '500' },
   check: {
     width: 36,
     height: 36,

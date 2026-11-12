@@ -7,7 +7,7 @@ import { todayKey } from '../../src/dates';
 import { HabitCard } from '../../src/components/HabitCard';
 import { ProgressCard } from '../../src/components/ProgressCard';
 import { useStore } from '../../src/store';
-import { iosPressed, radius, space, type, useTheme } from '../../src/theme';
+import { iosPressed, radius, space, font, useTheme } from '../../src/theme';
 
 function greeting() {
   const h = new Date().getHours();
@@ -72,12 +72,12 @@ const styles = StyleSheet.create({
   scroll: { padding: space.lg, paddingBottom: space.xxxl },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm, marginBottom: space.lg },
   headerText: { flex: 1 },
-  date: { ...type.subhead, fontWeight: '500' },
-  title: { ...type.largeTitle, marginTop: space.xxs },
+  date: { ...font.subhead, fontWeight: '500' },
+  title: { ...font.largeTitle, marginTop: space.xxs },
   addBtn: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   empty: { alignItems: 'center', padding: space.xl, borderRadius: radius.lg, borderWidth: 1, gap: space.xs },
-  emptyTitle: { ...type.title3 },
-  emptyText: { ...type.subhead, textAlign: 'center' },
+  emptyTitle: { ...font.title3 },
+  emptyText: { ...font.subhead, textAlign: 'center' },
   cta: {
     marginTop: space.xs,
     minHeight: 48,
@@ -87,5 +87,5 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     overflow: 'hidden',
   },
-  ctaText: { ...type.headline },
+  ctaText: { ...font.headline },
 });

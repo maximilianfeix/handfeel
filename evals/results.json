@@ -1,0 +1,148 @@
+{
+  "date": "2026-11-12",
+  "scanner": "0.1.0",
+  "apps": [
+    {
+      "app": "compose-tasks",
+      "platform": "compose",
+      "files": 4,
+      "before": 84,
+      "beforeBreakdown": [
+        "no-haptics -6",
+        "off-grid-spacing -5",
+        "hardcoded-color -2",
+        "type-outside-scale -1.5",
+        "type-scale-sprawl -1"
+      ]
+    },
+    {
+      "app": "expo-budget",
+      "platform": "react-native",
+      "files": 14,
+      "before": 49,
+      "beforeBreakdown": [
+        "purple-gradient -10",
+        "no-dark-mode -10",
+        "hardcoded-color -9.5",
+        "no-press-feedback -8",
+        "glassmorphism -6",
+        "type-scale-sprawl -5",
+        "icon-button-no-label -2",
+        "gradient-overuse -0"
+      ],
+      "after": 100,
+      "afterNoIgnores": 100,
+      "ignoreComments": 0,
+      "remaining": [
+        "glassmorphism app/(tabs)/_layout.tsx:39"
+      ],
+      "diff": "13 files changed, 369 insertions(+), 189 deletions(-)"
+    },
+    {
+      "app": "expo-chat",
+      "platform": "react-native",
+      "files": 15,
+      "before": 35,
+      "beforeBreakdown": [
+        "hardcoded-color -10",
+        "no-press-feedback -10",
+        "no-dark-mode -10",
+        "touch-target-too-small -8",
+        "type-scale-sprawl -6",
+        "keyboard-covers-input -6",
+        "no-haptics -6",
+        "off-grid-spacing -5",
+        "emoji-as-icon -2",
+        "modal-instead-of-sheet -2"
+      ],
+      "after": 100,
+      "afterNoIgnores": 90,
+      "ignoreComments": 4,
+      "remaining": [
+        "modal-instead-of-sheet src/components/Dialog.tsx:33",
+        "no-press-feedback src/components/Dialog.tsx:37",
+        "keyboard-covers-input src/components/ui.tsx:46",
+        "keyboard-covers-input src/screens/SettingsScreen.tsx:52"
+      ],
+      "diff": "17 files changed, 388 insertions(+), 239 deletions(-)"
+    },
+    {
+      "app": "expo-habits",
+      "platform": "react-native",
+      "files": 13,
+      "before": 71,
+      "beforeBreakdown": [
+        "no-press-feedback -10",
+        "type-scale-sprawl -6",
+        "hardcoded-color -4",
+        "default-ai-accent -3",
+        "off-grid-spacing -2",
+        "emoji-as-icon -2",
+        "touch-target-too-small -2",
+        "glassmorphism -0"
+      ],
+      "after": 100,
+      "afterNoIgnores": 100,
+      "ignoreComments": 0,
+      "remaining": [],
+      "diff": "8 files changed, 431 insertions(+), 164 deletions(-)"
+    },
+    {
+      "app": "flutter-fitness",
+      "platform": "flutter",
+      "files": 13,
+      "before": 38,
+      "beforeBreakdown": [
+        "hardcoded-color -10",
+        "purple-gradient -10",
+        "glassmorphism -8",
+        "no-haptics -6",
+        "type-outside-scale -5",
+        "type-scale-sprawl -5",
+        "gradient-overuse -4.5",
+        "no-press-feedback -4",
+        "no-platform-adaptation -4",
+        "missing-safe-area -3",
+        "off-grid-spacing -2"
+      ],
+      "after": 100,
+      "afterNoIgnores": 100,
+      "ignoreComments": 0,
+      "remaining": [],
+      "diff": "13 files changed, 621 insertions(+), 560 deletions(-)"
+    },
+    {
+      "app": "flutter-meditation",
+      "platform": "flutter",
+      "files": 9,
+      "before": 58,
+      "beforeBreakdown": [
+        "hardcoded-color -10",
+        "no-dark-mode -10",
+        "no-haptics -6",
+        "type-outside-scale -5",
+        "off-grid-spacing -5",
+        "no-platform-adaptation -4",
+        "type-scale-sprawl -2"
+      ],
+      "after": 100,
+      "afterNoIgnores": 100,
+      "ignoreComments": 0,
+      "remaining": [],
+      "diff": "9 files changed, 226 insertions(+), 132 deletions(-)"
+    },
+    {
+      "app": "swiftui-recipes",
+      "platform": "swiftui",
+      "files": 12,
+      "before": 79,
+      "beforeBreakdown": [
+        "emoji-as-icon -10",
+        "hardcoded-color -8",
+        "no-press-feedback -2",
+        "off-grid-spacing -1",
+        "gradient-overuse -0"
+      ]
+    }
+  ]
+}

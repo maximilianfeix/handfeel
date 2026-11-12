@@ -86,7 +86,7 @@ export const radius = { sm: 8, md: 16, lg: 24, pill: 999 };
 export const space = { xxs: 4, xs: 8, sm: 12, md: 16, lg: 20, xl: 24, xxl: 32, xxxl: 40 } as const;
 
 // iOS text styles at the default size; Android uses the same steps (Material scale is close).
-export const type = {
+export const font = {
   largeTitle: { fontSize: 34, fontWeight: '700' },
   title1: { fontSize: 28, fontWeight: '700' },
   title2: { fontSize: 22, fontWeight: '700' },

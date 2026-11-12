@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -13,19 +14,20 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
     return ListView(padding: const EdgeInsets.fromLTRB(24, 12, 24, 32), children: [
       Row(children: [
-        const Icon(Icons.spa_outlined, size: 26, color: StillColors.purple),
+        Icon(Icons.spa_outlined, size: 24, color: cs.primary),
         const SizedBox(width: 8),
-        const Text('still', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600, letterSpacing: -1, color: StillColors.ink)),
+        Text('still', style: theme.headlineSmall),
         const Spacer(),
-        TextButton.icon(onPressed: onProfile, icon: const Icon(Icons.local_fire_department_outlined, size: 19),
+        TextButton.icon(onPressed: onProfile, icon: const Icon(Icons.local_fire_department_outlined, size: 20),
           label: Text('${practice.streak} day streak'),
-          style: TextButton.styleFrom(foregroundColor: StillColors.purple, backgroundColor: StillColors.lavender, padding: const EdgeInsets.symmetric(horizontal: 14))),
+          style: TextButton.styleFrom(foregroundColor: cs.primary, backgroundColor: cs.secondaryContainer, padding: const EdgeInsets.symmetric(horizontal: 16))),
       ]),
-      const SizedBox(height: 30),
+      const SizedBox(height: 32),
       Text(_greeting(), style: theme.bodyMedium),
-      const SizedBox(height: 6),
+      const SizedBox(height: 8),
       Text('A little space\nfor yourself.', style: theme.headlineLarge),
       const SizedBox(height: 12),
       const Text('Slow down. Breathe. Begin again.'),
@@ -33,9 +35,9 @@ class HomeScreen extends StatelessWidget {
       _DailySession(onTap: () => onOpen(sessions.first)),
       const SizedBox(height: 28),
       Text('How are you feeling?', style: theme.titleLarge),
-      const SizedBox(height: 6),
+      const SizedBox(height: 8),
       Text(practice.mood == null ? 'Take a moment to check in with yourself.' : 'Feeling ${practice.mood!.toLowerCase()} is welcome here.'),
-      const SizedBox(height: 18),
+      const SizedBox(height: 16),
       LayoutBuilder(builder: (context, constraints) => Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           for (final entry in <(String, IconData)>[
@@ -46,7 +48,10 @@ class HomeScreen extends StatelessWidget {
             ('Stressed', Icons.sentiment_very_dissatisfied_rounded),
           ])
             _MoodChoice(label: entry.$1, icon: entry.$2, selected: practice.mood == entry.$1,
-              compact: constraints.maxWidth < 330, onTap: () => practice.checkIn(entry.$1)),
+              compact: constraints.maxWidth < 330, onTap: () {
+                if (practice.mood != entry.$1) HapticFeedback.selectionClick();
+                practice.checkIn(entry.$1);
+              }),
         ],
       )),
       SectionHeading('Made for this moment', action: 'View all', onTap: onLibrary),
@@ -60,13 +65,13 @@ class HomeScreen extends StatelessWidget {
           ],
         ]);
       }),
-      const SizedBox(height: 30),
-      Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: const Color(0xFFEEEFF3), borderRadius: BorderRadius.circular(16)),
+      const SizedBox(height: 32),
+      Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: cs.surfaceContainer, borderRadius: BorderRadius.circular(16)),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Icon(Icons.wb_sunny_outlined, color: StillColors.purple, size: 24),
-          const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(Icons.wb_sunny_outlined, color: cs.primary, size: 24),
+          const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Small moments. Meaningful change.', style: theme.titleMedium),
-            const SizedBox(height: 5), const Text('A few mindful minutes can be a beautiful place to start.', style: TextStyle(fontSize: 13, height: 1.6, color: StillColors.muted)),
+            const SizedBox(height: 4), Text('A few mindful minutes can be a beautiful place to start.', style: theme.bodyMedium?.copyWith(height: 1.6)),
           ])),
         ])),
     ]);
@@ -82,30 +87,35 @@ class _DailySession extends StatelessWidget {
   final VoidCallback onTap;
   const _DailySession({required this.onTap});
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(color: const Color(0xFFECE6F4), borderRadius: BorderRadius.circular(24)),
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Container(
+    decoration: BoxDecoration(color: cs.secondaryContainer, borderRadius: BorderRadius.circular(24)),
     clipBehavior: Clip.antiAlias,
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       SizedBox(height: 180, width: double.infinity, child: Landscape(child: Padding(
         padding: const EdgeInsets.all(20), child: Align(alignment: Alignment.topLeft, child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(color: Colors.white.withOpacity(.8), borderRadius: BorderRadius.circular(20)),
-          child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.auto_awesome_outlined, size: 14, color: StillColors.purple), SizedBox(width: 6), Text('Your daily moment', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: StillColors.ink))]),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          // Sits on light artwork in both modes, so it keeps a light chip.
+          decoration: BoxDecoration(color: StillChip.background, borderRadius: BorderRadius.circular(20)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.auto_awesome_outlined, size: 16, color: StillChip.accent), const SizedBox(width: 8), Text('Your daily moment', style: tt.labelSmall?.copyWith(color: StillChip.foreground))]),
         )),
       ))),
-      Padding(padding: const EdgeInsets.fromLTRB(22, 20, 22, 22), child: Row(children: [
+      Padding(padding: const EdgeInsets.fromLTRB(24, 20, 24, 24), child: Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('A little more present', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 7),
-          const Text('Mindfulness · 10 min', style: TextStyle(fontSize: 13, color: Color(0xFF6A607B))),
+          const SizedBox(height: 8),
+          Text('Mindfulness · 10 min', style: tt.bodyMedium),
         ])),
         const SizedBox(width: 8),
         IconButton.filled(onPressed: onTap, tooltip: 'Start your daily session',
-          style: IconButton.styleFrom(backgroundColor: StillColors.ink, foregroundColor: Colors.white, minimumSize: const Size(52, 52)),
+          style: IconButton.styleFrom(backgroundColor: cs.inverseSurface, foregroundColor: cs.onInverseSurface, minimumSize: const Size(52, 52)),
           icon: const Icon(Icons.play_arrow_rounded, size: 28)),
       ])),
     ]),
   );
+  }
 }
 
 class _MoodChoice extends StatelessWidget {
@@ -115,13 +125,16 @@ class _MoodChoice extends StatelessWidget {
   final VoidCallback onTap;
   const _MoodChoice({required this.label, required this.icon, required this.selected, required this.compact, required this.onTap});
   @override
-  Widget build(BuildContext context) => Semantics(selected: selected, button: true, label: 'Feeling $label', child: InkWell(
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Semantics(selected: selected, button: true, label: 'Feeling $label', child: InkWell(
     borderRadius: BorderRadius.circular(16), onTap: onTap,
     child: Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Column(children: [
       AnimatedContainer(duration: const Duration(milliseconds: 180), width: compact ? 46 : 54, height: compact ? 46 : 54,
-        decoration: BoxDecoration(color: selected ? StillColors.purple : const Color(0xFFF0EDF5), shape: BoxShape.circle),
-        child: Icon(icon, size: 28, color: selected ? Colors.white : const Color(0xFF8A7D9F))),
-      const SizedBox(height: 8), Text(label, style: TextStyle(fontSize: 11, color: selected ? StillColors.purple : StillColors.muted, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+        decoration: BoxDecoration(color: selected ? cs.primary : cs.surfaceContainerHigh, shape: BoxShape.circle),
+        child: Icon(icon, size: 28, color: selected ? cs.onPrimary : cs.onSurfaceVariant)),
+      const SizedBox(height: 8), Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: selected ? cs.primary : cs.onSurfaceVariant, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
     ])),
   ));
+  }
 }

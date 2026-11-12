@@ -8,9 +8,9 @@ A modern Expo + React Native messaging demo written in TypeScript. A forest-gree
 - One-to-one and group chat screens with message bubbles, timestamps, a coffee-plan card, conversation details, emoji picker, and message search.
 - A multiline composer with blank-message protection. On web, Enter sends and Shift+Enter inserts a newline.
 - Alphabetical contacts, contact search, and an online filter. Selecting a contact opens or creates a conversation.
-- Editable profile, dark appearance, online indicators, timestamp preferences, and a confirmation before clearing message history.
+- Editable profile, light and dark appearance that follows the system (with a manual override), online indicators, timestamp preferences, and a confirmation before clearing message history.
 - Local persistence with AsyncStorage and initials when remote avatar images are unavailable.
-- Mobile navigation, Android back-button support, keyboard avoidance, safe areas, and a two-pane layout at 900px and wider.
+- Mobile navigation, Android back-button support, Android ripples and iOS press states, haptics on selection, send and success (expo-haptics), keyboard avoidance, safe areas, and a two-pane layout at 900px and wider.
 - Accessible control labels, empty states, and storage error feedback.
 
 ## Project structure
@@ -23,7 +23,8 @@ src/components/             Shared UI, navigation, messages, dialogs
 src/screens/                Conversations, chat, contacts, settings
 src/state/AppContext.tsx    App state and local persistence
 src/data.ts                 Fictional contacts and sample conversations
-src/theme.ts                Light and dark color tokens
+src/theme.ts                Light and dark color tokens, type roles, spacing scale
+src/haptics.ts              Haptic feedback for meaningful moments
 src/types.ts                Shared TypeScript models
 ```
 

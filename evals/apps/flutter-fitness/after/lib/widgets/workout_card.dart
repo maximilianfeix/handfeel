@@ -4,7 +4,7 @@ import '../models.dart';
 import '../screens/workout_detail_screen.dart';
 import '../theme.dart';
 
-/// Full-width gradient card for a workout. Set [large] for the hero variant.
+/// Full-width card for a workout. Set [large] for the featured variant.
 class WorkoutCard extends StatelessWidget {
   final Workout workout;
   final bool large;
@@ -13,59 +13,53 @@ class WorkoutCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => WorkoutDetailScreen(workout: workout)),
-      ),
-      child: Hero(
-        tag: 'workout-${workout.id}',
-        child: Material(
-          color: Colors.transparent,
+    final tt = Theme.of(context).textTheme;
+    final fg = workout.tone.onColor;
+    return Hero(
+      tag: 'workout-${workout.id}',
+      child: Card(
+        margin: EdgeInsets.zero,
+        elevation: 0,
+        color: workout.tone.color,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+                builder: (_) => WorkoutDetailScreen(workout: workout)),
+          ),
           child: Container(
-            height: large ? 190 : 130,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: workout.colors,
-              ),
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: workout.colors.first.withOpacity(0.35),
-                  blurRadius: 24,
-                  offset: const Offset(0, 12),
-                ),
-              ],
-            ),
+            constraints: BoxConstraints(minHeight: large ? 192 : 128),
+            padding: const EdgeInsets.all(Space.lg + Space.xs),
             child: Stack(
+              clipBehavior: Clip.none,
               children: [
                 Positioned(
-                  right: -10,
-                  bottom: -14,
-                  child: Icon(workout.icon,
-                      size: large ? 130 : 90,
-                      color: Colors.white.withOpacity(0.18)),
+                  right: -12,
+                  bottom: -16,
+                  child: ExcludeSemantics(
+                    child: Icon(workout.icon,
+                        size: large ? 128 : 88, color: fg.withOpacity(0.12)),
+                  ),
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _Pill(text: workout.category.toUpperCase()),
-                    const Spacer(),
+                    _Pill(text: workout.category.toUpperCase(), color: fg),
+                    SizedBox(height: large ? Space.xxl + Space.lg : Space.lg),
                     Text(
                       workout.title,
-                      style: TextStyle(
-                        fontSize: large ? 28 : 22,
+                      style: (large ? tt.headlineMedium : tt.titleLarge)
+                          ?.copyWith(
+                        color: fg,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: Space.xs),
                     Text(
                       '${workout.minutes} min  ·  ${workout.kcal} kcal  ·  ${workout.level}',
-                      style: TextStyle(
-                          color: Colors.white.withOpacity(0.85), fontSize: 13),
+                      style: tt.bodyMedium?.copyWith(color: fg.withOpacity(0.8)),
                     ),
                   ],
                 ),
@@ -80,20 +74,21 @@ class WorkoutCard extends StatelessWidget {
 
 class _Pill extends StatelessWidget {
   final String text;
-  const _Pill({required this.text});
+  final Color color;
+  const _Pill({required this.text, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding:
+          const EdgeInsets.symmetric(horizontal: Space.sm, vertical: Space.xs),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.25),
+        border: Border.all(color: color.withOpacity(0.4)),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(text,
-          style: const TextStyle(
-              fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.1,
-              color: AppColors.lime)),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: color, fontWeight: FontWeight.w800, letterSpacing: 1.1)),
     );
   }
 }

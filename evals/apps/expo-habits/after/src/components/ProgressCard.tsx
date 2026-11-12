@@ -1,12 +1,12 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { radius, space, type, useTheme } from '../theme';
+import { radius, space, font, useTheme } from '../theme';
 
 export function ProgressCard({ done, total }: { done: number; total: number }) {
   const t = useTheme();
   const pct = total === 0 ? 0 : done / total;
   const message =
-    total === 0 ? 'Add your first habit to get started' : done === total ? 'All done for today.' : `${total - done} left today`;
+    total === 0 ? 'Add your first habit to get started' : done === total ? 'All done for today.' : `${total - done} left to go`;
   return (
     <View
       style={[styles.card, { backgroundColor: t.card, borderColor: t.border }]}
@@ -28,10 +28,10 @@ export function ProgressCard({ done, total }: { done: number; total: number }) {
 
 const styles = StyleSheet.create({
   card: { borderRadius: radius.lg, borderWidth: 1, padding: space.lg, marginBottom: space.lg, gap: space.xs },
-  label: { ...type.footnote, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
-  big: { ...type.largeTitle },
-  small: { ...type.subhead, fontWeight: '500' },
+  label: { ...font.footnote, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
+  big: { ...font.largeTitle },
+  small: { ...font.subhead, fontWeight: '500' },
   track: { height: 8, borderRadius: 4, overflow: 'hidden' },
   fill: { height: 8, borderRadius: 4 },
-  msg: { ...type.subhead },
+  msg: { ...font.subhead },
 });

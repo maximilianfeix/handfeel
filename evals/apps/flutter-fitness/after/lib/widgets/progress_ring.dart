@@ -2,9 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../theme.dart';
-
-/// Animated circular progress ring with a gradient stroke.
+/// Animated circular progress ring in the accent color.
 class ProgressRing extends StatelessWidget {
   final double progress; // 0..1
   final double size;
@@ -21,15 +19,23 @@ class ProgressRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: progress.clamp(0.0, 1.0)),
-      duration: const Duration(milliseconds: 1100),
+      duration:
+          reduceMotion ? Duration.zero : const Duration(milliseconds: 1100),
       curve: Curves.easeOutCubic,
       builder: (context, value, _) => SizedBox(
         width: size,
         height: size,
         child: CustomPaint(
-          painter: _RingPainter(value, stroke),
+          painter: _RingPainter(
+            value: value,
+            stroke: stroke,
+            trackColor: cs.surfaceContainerHighest,
+            arcColor: cs.primary,
+          ),
           child: Center(child: child),
         ),
       ),
@@ -40,29 +46,31 @@ class ProgressRing extends StatelessWidget {
 class _RingPainter extends CustomPainter {
   final double value;
   final double stroke;
-  _RingPainter(this.value, this.stroke);
+  final Color trackColor;
+  final Color arcColor;
+  _RingPainter({
+    required this.value,
+    required this.stroke,
+    required this.trackColor,
+    required this.arcColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final center = rect.center;
+    final center = (Offset.zero & size).center;
     final radius = (size.shortestSide - stroke) / 2;
 
     final track = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
-      ..color = Colors.white.withOpacity(0.08);
+      ..color = trackColor;
     canvas.drawCircle(center, radius, track);
 
     final arc = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeWidth = stroke
-      ..shader = const SweepGradient(
-        startAngle: -math.pi / 2,
-        endAngle: 3 * math.pi / 2,
-        colors: [AppColors.violet, AppColors.sky, AppColors.lime],
-      ).createShader(rect);
+      ..color = arcColor;
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       -math.pi / 2,
@@ -74,5 +82,8 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _RingPainter old) =>
-      old.value != value || old.stroke != stroke;
+      old.value != value ||
+      old.stroke != stroke ||
+      old.trackColor != trackColor ||
+      old.arcColor != arcColor;
 }
