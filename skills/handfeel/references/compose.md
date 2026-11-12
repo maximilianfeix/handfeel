@@ -116,7 +116,7 @@ Scaffold(bottomBar = {
                 label = { Text(stringResource(d.label)) })
         }
     }
-}) { inner -> NavHost(navController, startDestination = Home, Modifier.padding(inner)) { /* … */ } }
+}) { inner -> NavHost(navController, startDestination = Home, Modifier.padding(inner)) { /* destinations */ } }
 ```
 
 **Why:** Use navigation bars for "Three to five destinations of equal importance" and "Compact window sizes". "`NavigationDrawer` is used for medium-to-large size tablets", and "The navigation drawer is being deprecated in the Material 3 expressive update". The icon in a `NavigationBarItem` can be `null` because the label describes it.
@@ -176,7 +176,7 @@ setContent {
 **Why:** "Apps are edge-to-edge by default on devices running Android 15 if the app is targeting Android 15 (API level 35)", and for target SDK 36 "your app can't opt-out of going edge-to-edge". `Window#setStatusBarColor`, `setNavigationBarColor` and `setDecorFitsSystemWindows` are "deprecated and disabled" on Android 15. "Use `WindowInsets.safeDrawing` to protect content that shouldn't be drawn underneath any system UI." Also remove `windowOptOutEdgeToEdgeEnforcement` from themes.
 Source: https://developer.android.com/about/versions/15/behavior-changes-15, https://developer.android.com/about/versions/16/behavior-changes-16, https://developer.android.com/develop/ui/compose/layouts/insets
 
-### Keyboard insets on screens with text fields [not scanned]
+### Keyboard insets, keyboard type and autofill [not scanned]
 
 **Slop:** A chat or form whose bottom bar ends up behind the keyboard.
 
@@ -195,13 +195,18 @@ Column(Modifier.fillMaxSize().imePadding()) {
     Composer()
 }
 OutlinedTextField(email, onValueChange = { email = it }, label = { Text("Email") },
-    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next))
+    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+    modifier = Modifier.semantics { contentType = ContentType.EmailAddress })   // compose-ui 1.8.0+
+OutlinedTextField(password, onValueChange = { password = it }, label = { Text("Password") },
+    visualTransformation = PasswordVisualTransformation(),
+    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+    modifier = Modifier.semantics { contentType = ContentType.Password })
 ```
 
-**Why:** `WindowInsets.ime` describes "the amount of space on the bottom that the software keyboard occupies". With edge-to-edge enforced, the window does not shrink for the keyboard by itself, so the layout must apply the inset. If `Scaffold` padding already includes the IME inset, do not add it twice.
-Source: https://developer.android.com/develop/ui/compose/layouts/insets
+**Why:** `WindowInsets.ime` describes "the amount of space on the bottom that the software keyboard occupies". With edge-to-edge enforced, the window does not shrink for the keyboard by itself, so the layout must apply the inset. If `Scaffold` padding already includes the IME inset, do not add it twice. For autofill, "set the ContentType semantics with the types that the field can accept"; `ContentType` was added in compose-ui 1.8.0. Use `ContentType.NewPassword` on sign-up, where "the system may suggest a strong password". The supported keyboard options are "capitalization autoCorrect keyboardType imeAction".
+Source: https://developer.android.com/develop/ui/compose/layouts/insets, https://developer.android.com/develop/ui/compose/text/autofill, https://developer.android.com/develop/ui/compose/text/user-input
 
-### Back handling with BackHandler [not scanned]
+### Back handling with BackHandler and predictive back [not scanned]
 
 **Slop:** `onBackPressed` overridden in the activity to close a sheet.
 
@@ -218,8 +223,8 @@ BackHandler(enabled = sheetOpen) { closeSheet() }
 // progress-aware animation: PredictiveBackHandler
 ```
 
-**Why:** For apps targeting Android 16 on Android 16 devices, "`onBackPressed` is not called and `KeyEvent.KEYCODE_BACK` is not dispatched anymore." Android: "If you only need to intercept the back gesture without tracking progress, use `BackHandler`." Also check for `enableOnBackInvokedCallback="false"` in the manifest.
-Source: https://developer.android.com/about/versions/16/behavior-changes-16, https://developer.android.com/guide/navigation/custom-back/predictive-back-gesture
+**Why:** For apps targeting Android 16 on Android 16 devices, "`onBackPressed` is not called and `KeyEvent.KEYCODE_BACK` is not dispatched anymore." Android: "If you only need to intercept the back gesture without tracking progress, use `BackHandler`." `PredictiveBackHandler` needs "androidx.activity:activity:1.6.0 or higher", and Navigation Compose animates predictive back from "navigation-compose 2.8.0". "Intercepting back at the root activity (e.g. MainActivity.kt) disables the back-to-home animation", so enable a `BackHandler` only while there is something to close. `android:enableOnBackInvokedCallback="false"` in the manifest is a temporary opt-out; report it.
+Source: https://developer.android.com/about/versions/16/behavior-changes-16, https://developer.android.com/guide/navigation/custom-back/predictive-back-gesture, https://developer.android.com/develop/ui/compose/system/predictive-back-setup, https://developer.android.com/develop/ui/compose/system/predictive-back-progress
 
 ### Colors from the color scheme [hardcoded-color]
 
@@ -279,7 +284,7 @@ private val LightColors = lightColorScheme(primary = Primary)
 **Fix:** Ask for the brand color, or use dynamic color until there is one. Define the brand color once in `Color.kt`.
 
 ```kotlin
-val BrandPrimary = Color(0xFF…)   // chosen by the owner, with a matching onPrimary
+val BrandPrimary = Color(0xFF0A7C66)   // placeholder: the owner picks it, with a matching onPrimary
 private val LightColors = lightColorScheme(primary = BrandPrimary, onPrimary = BrandOnPrimary)
 ```
 
@@ -355,13 +360,33 @@ Text(caption, style = MaterialTheme.typography.labelSmall,
 **Why:** M3 defines "display, headline, title, body, and label, with large, medium, and small sizes for each", read through `MaterialTheme.typography`. "The sp unit is the same size as a dp, by default, but it resizes based on the user's preferred text size. Never use sp for layout sizes." So `dp.toSp()` and `fontSize = N.dp` freeze text, and `N.sp` heights in layout grow with the font setting.
 Source: https://developer.android.com/develop/ui/compose/designsystems/material3, https://developer.android.com/training/multiscreen/screendensities, spec https://m3.material.io/styles/typography/overview
 
+### Layouts that survive 200% font size [not scanned]
+
+**Slop:** fixed heights around text and single-line titles.
+
+```kotlin
+Row(Modifier.height(56.dp), verticalAlignment = Alignment.CenterVertically) {
+    Text(title, maxLines = 1); Spacer(Modifier.weight(1f)); Text(amount)
+}
+```
+
+**Fix:**
+
+```kotlin
+ListItem(headlineContent = { Text(title) }, trailingContent = { Text(amount) })   // grows with its text
+// custom row: Modifier.heightIn(min = 56.dp) instead of height(56.dp), and let Text wrap
+```
+
+**Why:** "Starting in Android 14, the system supports font scaling up to 200%", and Android asks you to "perform UI testing with the maximum font size enabled (200%)". Text in `sp` grows; a `height` in `dp` around it does not. Look for `.height(` and `.size(` on containers of `Text`, and `maxLines = 1` on titles.
+Source: https://developer.android.com/about/versions/14/features#non-linear-font-scaling, https://developer.android.com/training/multiscreen/screendensities
+
 ### Material icons, not emoji [emoji-as-icon]
 
 **Slop:** Emoji as navigation icons, button icons and headings.
 
 ```kotlin
-NavigationBarItem(selected = sel, onClick = go, icon = { Text("🏠") }, label = { Text("Home") })
-Text("🔥 Streak", style = MaterialTheme.typography.titleMedium)
+NavigationBarItem(selected = sel, onClick = go, icon = { Text("\uD83C\uDFE0") }, label = { Text("Home") })   // house emoji
+Text("\uD83D\uDD25 Streak", style = MaterialTheme.typography.titleMedium)   // fire emoji
 ```
 
 **Fix:** `Icons.*` from the Material icons library, or Material Symbols added as vector drawables. One set, one style.
@@ -452,7 +477,7 @@ PullToRefreshBox(isRefreshing = state.loading, onRefresh = vm::reload) {
 **Why:** With `Column`, "all the items will be composed and laid out whether or not they are visible", and "Providing a stable key enables item state to be consistent across dataset changes". "Use the `PullToRefreshBox` composable to implement pull-to-refresh." Check that the project's material3 version has `PullToRefreshBox` before you add it.
 Source: https://developer.android.com/develop/ui/compose/lists, https://developer.android.com/develop/ui/compose/components/pull-to-refresh
 
-### Placeholders while loading, a next step when empty [not scanned]
+### Placeholders while loading, a next step when empty or failed [not scanned]
 
 **Slop:** A full-screen spinner on every screen, then a bare "No data" text.
 
@@ -473,10 +498,15 @@ when {
         action = { Button(onClick = onAdd) { Text(stringResource(R.string.add_transaction)) } })
     else -> LazyColumn { items(items, key = { it.id }) { TxRow(it) } }
 }
+// remote images (Coil): a placeholder of the final size, and an error painter
+AsyncImage(model = avatarUrl, contentDescription = stringResource(R.string.avatar, name),
+    placeholder = painterResource(R.drawable.avatar_placeholder),
+    error = painterResource(R.drawable.avatar_placeholder),
+    modifier = Modifier.size(48.dp).clip(CircleShape))
 ```
 
-**Why:** Android suggests "adding some placeholders" so item sizing "remains the same before and after loading". In M3 Expressive, "The loading indicator is designed to show progress that loads in under five seconds. It should replace most uses of the indeterminate circular progress indicator." M3 has no skeleton or empty-state component; the empty-state advice is handfeel judgement. `EmptyState` above is a small composable you write, using the app's own wording.
-Source: https://developer.android.com/develop/ui/compose/lists, https://github.com/material-components/material-components-android/blob/master/docs/components/LoadingIndicator.md, https://developer.android.com/develop/ui/compose/components/progress. Empty states: handfeel judgement, see docs/slop-catalog.md
+**Why:** Android suggests "adding some placeholders" so item sizing "remains the same before and after loading". In M3 Expressive, "The loading indicator is designed to show progress that loads in under five seconds. It should replace most uses of the indeterminate circular progress indicator." M3 has no skeleton or empty-state component; the empty-state advice is handfeel judgement, and the same goes for errors: say what failed and offer "Try again", never the raw exception text. `EmptyState` above is a small composable you write, using the app's own wording. For network images Android points to libraries such as Coil, whose `AsyncImage` supports "setting `placeholder`/`error`/`fallback` painters"; adding Coil is a dependency change.
+Source: https://developer.android.com/develop/ui/compose/lists, https://github.com/material-components/material-components-android/blob/master/docs/components/LoadingIndicator.md, https://developer.android.com/develop/ui/compose/components/progress, https://developer.android.com/develop/ui/compose/graphics/images/loading, https://coil-kt.github.io/coil/compose/. Empty and error states: handfeel judgement, see docs/slop-catalog.md
 
 ### Restrained motion [not scanned]
 
@@ -520,6 +550,50 @@ Surface(color = MaterialTheme.colorScheme.primaryContainer) {
 **Why:** "If the text is smaller than 18sp, or if the text is bold and smaller than 14sp, use foreground and background colors that result in a color contrast ratio of at least 4.5:1. For all other text, set the color contrast ratio to at least 3:1." Check light and dark schemes. When both colors are literals, compute the ratio; text over images or gradients needs a look at the rendered screen.
 Source: https://developer.android.com/guide/topics/ui/accessibility/apps
 
+### Start and end, auto-mirrored icons [not scanned]
+
+Only if the app ships, or plans to ship, a right-to-left language. Compose `padding(start = ...)` already follows the layout direction.
+
+**Slop:**
+
+```kotlin
+Icon(Icons.Default.ArrowForward, contentDescription = null)
+Modifier.absolutePadding(left = 16.dp)
+```
+
+**Fix:**
+
+```kotlin
+Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+Modifier.padding(start = 16.dp)
+```
+
+**Why:** "The AutoMirrored icons are a subset of Icons that will automatically mirror themselves when displayed in an RTL layout." Directional icons from `Icons.Default` do not. `absolutePadding` ignores the layout direction.
+Source: https://developer.android.com/reference/kotlin/androidx/compose/material/icons/Icons.AutoMirrored
+
+### System splash screen, no splash activity [not scanned]
+
+**Slop:** a `SplashActivity` or a splash composable with a logo and a timer.
+
+```kotlin
+LaunchedEffect(Unit) { delay(2500); navController.navigate("home") }
+```
+
+**Fix:**
+
+```kotlin
+override fun onCreate(savedInstanceState: Bundle?) {
+    val splash = installSplashScreen()          // androidx.core:core-splashscreen
+    super.onCreate(savedInstanceState)
+    splash.setKeepOnScreenCondition { !viewModel.isReady.value }
+    enableEdgeToEdge()
+    setContent { App() }
+}
+```
+
+**Why:** "Starting in Android 12, apps launch with a system splash screen", and "If you implemented a custom splash screen in Android 11 or lower, migrate your app to the SplashScreen compat library". Keep the splash only while startup work is running, not for a fixed time. For the launcher icon: "If you want to support user theming of app icons, provide a single layer for the monochrome version of the icon."
+Source: https://developer.android.com/guide/topics/ui/splash-screen, https://developer.android.com/develop/ui/views/launch/icon_design_adaptive
+
 ## Checklist before you report
 
 - You confirmed Compose with Material 3 and read `compileSdk`, `targetSdk`, `minSdk` and the BOM version, and every suggested API exists at those versions.
@@ -531,7 +605,7 @@ Source: https://developer.android.com/guide/topics/ui/accessibility/apps
 - `enableEdgeToEdge()` is called, `Scaffold` padding is used, and no code paints the system bars.
 - Colors come from `MaterialTheme.colorScheme`, and both light and dark schemes exist.
 - Text uses `MaterialTheme.typography` roles and `sp`, never `dp` for text.
-- Lists are lazy with keys; loading and empty states follow the patterns above.
+- Lists are lazy with keys; loading, empty and error states follow the patterns above; screens were checked at 200% font size (or you said you could not run them).
 - In fix mode, each change is small, scoped to one screen, and listed with its file.
 - You stated plainly whether you built the app, ran it on an emulator or a device, or neither.
 

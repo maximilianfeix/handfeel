@@ -18,13 +18,14 @@ Version-dependent choices:
 |---|---|---|
 | Android edge-to-edge | Flutter release, Android target | "Starting in Flutter 3.27, Flutter apps target Android 15 by default", and apps targeting Android 15+ "opt in to edge-to-edge mode". "as of Android 16, you can't" opt out. |
 | `TextScaler` | Flutter release | `textScaleFactor` "was deprecated"; `TextScaler` and `MediaQuery.textScalerOf(context)` are the replacement, stable in Flutter 3.16. On older SDKs keep the existing API and only remove overrides. |
-| Material 3 | `ThemeData.useMaterial3` | "This flag is true by default." The research did not capture the release where the default changed; check the project's SDK if it is old. |
-| `HapticFeedback.successNotification()` | Flutter release | Listed on the current API page; the minimum version was not verified. If it does not compile, use `lightImpact()` or `mediumImpact()`. |
-| Color alpha (`withOpacity` vs `withValues`) | Flutter release | Not verified for this file. Follow what `flutter analyze` reports as deprecated in this project and do not mass-rewrite either form. |
-| `surfaceContainer*` color roles | Flutter release | Used in the fixes below; the minimum version was not verified. If they do not compile, use the closest surface role the SDK has. |
+| Material 3 | `ThemeData.useMaterial3` | "This flag is true by default." The default changed in stable release 3.16. |
+| `HapticFeedback.successNotification()` | Flutter release | Listed on the current API page ("indicating that a task or action has completed successfully"); handfeel did not verify the first release that has it. If it does not compile, use `lightImpact()` or `mediumImpact()`. |
+| Color alpha (`withOpacity` vs `withValues`) | Flutter release | `withOpacity` is deprecated since 3.27: "Use .withValues() to avoid precision loss." Write `color.withValues(alpha: 0.5)` on 3.27+; on older SDKs keep `withOpacity`. |
+| `surfaceContainer*` color roles | Flutter release | Added in stable release 3.22. Below that, use the closest surface role the SDK has. |
+| `PopScope` | Flutter release | Replaced `WillPopScope` for predictive back in stable release 3.16. |
 | Dart 3 `switch` expressions | Dart SDK constraint | Used in one fix below; on Dart 2 use an `if`/`else`. |
 
-Sources: https://docs.flutter.dev/release/breaking-changes/default-systemuimode-edge-to-edge, https://docs.flutter.dev/release/breaking-changes/deprecate-textscalefactor, https://api.flutter.dev/flutter/material/ThemeData/useMaterial3.html, https://api.flutter.dev/flutter/services/HapticFeedback-class.html
+Sources: https://docs.flutter.dev/release/breaking-changes/default-systemuimode-edge-to-edge, https://docs.flutter.dev/release/breaking-changes/deprecate-textscalefactor, https://docs.flutter.dev/release/breaking-changes/material-3-default, https://api.flutter.dev/flutter/material/ThemeData/useMaterial3.html, https://api.flutter.dev/flutter/services/HapticFeedback-class.html, https://docs.flutter.dev/release/breaking-changes/wide-gamut-framework, https://api.flutter.dev/flutter/dart-ui/Color/withOpacity.html, https://docs.flutter.dev/release/breaking-changes/new-color-scheme-roles, https://docs.flutter.dev/release/breaking-changes/android-predictive-back
 
 ---
 
@@ -109,7 +110,7 @@ InkWell(
 )
 ```
 
-**Why:** `selectionClick()` "signals moving between discrete selection values"; `lightImpact()`, `mediumImpact()` and `heavyImpact()` cover physical events. "The Material and Cupertino packages automatically trigger the platform appropriate haptic feedback in certain scenarios", so do not add a second haptic to standard controls. Apple: "Avoid overusing haptics." The scanner reports once per project when nothing uses `HapticFeedback.`, `Vibration`, `haptic_feedback` or `enableFeedback: true`. It does not flag `vibrate()`; check for it by hand.
+**Why:** `selectionClick()` "Provides a haptic feedback indication selection changing through discrete values"; `lightImpact()`, `mediumImpact()` and `heavyImpact()` cover physical events. "The Material and Cupertino packages automatically trigger the platform appropriate haptic feedback in certain scenarios", so do not add a second haptic to standard controls. Apple: "Avoid overusing haptics." The scanner reports once per project when nothing uses `HapticFeedback.`, `Vibration`, `haptic_feedback` or `enableFeedback: true`. It does not flag `vibrate()`; check for it by hand.
 Source: https://api.flutter.dev/flutter/services/HapticFeedback-class.html, https://docs.flutter.dev/ui/adaptive-responsive/platform-adaptations, https://developer.apple.com/design/human-interface-guidelines/playing-haptics#Best-practices
 
 ---
@@ -228,6 +229,74 @@ Scaffold(
 
 **Why:** `resizeToAvoidBottomInset`: "If true the body and the scaffold's floating widgets should size themselves to avoid the onscreen keyboard". It defaults to true. Fix the overflow with a scrollable body instead. Search for `resizeToAvoidBottomInset: false`.
 Source: https://api.flutter.dev/flutter/material/Scaffold/resizeToAvoidBottomInset.html
+
+### Keyboard type, autofill and the action key [not scanned]
+
+**Slop:** a login form where every field opens the text keyboard and the password manager offers nothing.
+
+```dart
+TextField(decoration: const InputDecoration(labelText: 'Email'))
+TextField(decoration: const InputDecoration(labelText: 'Password'), obscureText: true)
+```
+
+**Fix:**
+
+```dart
+AutofillGroup(
+  child: Column(children: [
+    TextField(
+      decoration: const InputDecoration(labelText: 'Email'),
+      keyboardType: TextInputType.emailAddress,
+      autofillHints: const [AutofillHints.email],
+      textInputAction: TextInputAction.next,
+    ),
+    TextField(
+      decoration: const InputDecoration(labelText: 'Password'),
+      obscureText: true,
+      autofillHints: const [AutofillHints.password],
+      textInputAction: TextInputAction.done,
+      onSubmitted: (_) => signIn(),
+    ),
+  ]),
+)
+```
+
+Use `AutofillHints.newPassword` on sign-up, `oneTimeCode` for SMS codes, and `TextInputType.phone` or `TextInputType.numberWithOptions(decimal: true)` where they fit.
+
+**Why:** `autofillHints` is "A list of strings that helps the autofill service identify the type of this text input." `AutofillHints.password`: "The input field expects a password." Apple: "Choose a keyboard that matches the type of content people are editing", and "Consider customizing the Return key type if it helps clarify the text-entry experience." Search for `TextField(` and `TextFormField(` without `keyboardType` or `autofillHints` on email, phone, password and code fields.
+Source: https://api.flutter.dev/flutter/material/TextField/autofillHints.html, https://api.flutter.dev/flutter/services/AutofillHints-class.html, https://developer.apple.com/design/human-interface-guidelines/virtual-keyboards#Best-practices
+
+### Back works with gestures, and predictive back [not scanned]
+
+**Slop:** `WillPopScope`, a fade route that drops the iOS back swipe, or a screen that swaps its body from state.
+
+```dart
+WillPopScope(onWillPop: () async => confirmLeave(), child: form)
+Navigator.of(context).push(PageRouteBuilder(pageBuilder: (_, __, ___) => const Detail(),
+    transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child)));
+```
+
+**Fix:**
+
+```dart
+PopScope(
+  canPop: !hasChanges,
+  onPopInvokedWithResult: (didPop, result) async {
+    if (didPop) return;
+    if (await confirmLeave() && context.mounted) Navigator.of(context).pop(result);
+  },
+  child: form,
+)
+Navigator.of(context).push(MaterialPageRoute(builder: (_) => const Detail()));
+```
+
+```xml
+<!-- android/app/src/main/AndroidManifest.xml -->
+<application android:enableOnBackInvokedCallback="true" ...>
+```
+
+**Why:** Flutter: "On iOS, an edge swipe gesture can be used to pop the top route", and `MaterialPageRoute` uses "a platform-adaptive transition"; a custom `PageRouteBuilder` gives up that platform behaviour. "PopScope replaces the deprecated WillPopScope widget and supports predictive back gestures." Predictive back on Android needs `android:enableOnBackInvokedCallback="true"`. Apple: "people expect to find a Back button in a top toolbar". Search for `WillPopScope`, `PageRouteBuilder` and `onWillPop`.
+Source: https://docs.flutter.dev/ui/adaptive-responsive/platform-adaptations, https://api.flutter.dev/flutter/material/MaterialPageRoute-class.html, https://docs.flutter.dev/platform-integration/android/predictive-back, https://developer.apple.com/design/human-interface-guidelines/gestures
 
 ---
 
@@ -456,8 +525,33 @@ MaterialApp(
 
 Then fix what breaks at large sizes: let rows wrap, remove fixed heights around `Text`.
 
-**Why:** `textScaleFactor` was deprecated because a single scalar cannot represent "Android 14's nonlinear font scaling". Flutter: "The UI should remain legible and usable at very large scale factors for text size and display scaling." The scanner flags `TextScaler.noScaling`, `TextScaler.linear(1)` / `TextScaler.linear(1.0)` and `textScaleFactor: 1` / `textScaleFactor: 1.0`.
+**Why:** `textScaleFactor` was deprecated "In preparation for adopting the Android 14 nonlinear font scaling feature". Flutter: "The UI should remain legible and usable at very large scale factors for text size and display scaling." The scanner flags `TextScaler.noScaling`, `TextScaler.linear(1)` / `TextScaler.linear(1.0)` and `textScaleFactor: 1` / `textScaleFactor: 1.0`.
 Source: https://docs.flutter.dev/release/breaking-changes/deprecate-textscalefactor, https://docs.flutter.dev/ui/accessibility-and-internationalization/accessibility, https://api.flutter.dev/flutter/painting/TextScaler-class.html
+
+### Layouts that survive the largest text size [not scanned]
+
+**Slop:** fixed heights and single-line rows around text.
+
+```dart
+SizedBox(height: 56, child: Row(children: [Text(title, maxLines: 1), const Spacer(), Text(amount)]))
+```
+
+**Fix:**
+
+```dart
+ConstrainedBox(
+  constraints: const BoxConstraints(minHeight: 56),
+  child: Wrap(
+    alignment: WrapAlignment.spaceBetween,
+    spacing: Space.sm,
+    children: [Text(title), Text(amount)],
+  ),
+)
+// or ListTile, which grows with its text
+```
+
+**Why:** Flutter: "The UI should remain legible and usable at very large scale factors for text size and display scaling." Android 14 "supports font scaling up to 200%", and Apple asks: "Make sure your app's layout adapts to all font sizes." Test at the largest setting; look for `SizedBox(height:` and `Container(height:` around `Text`, and `maxLines: 1` on titles.
+Source: https://docs.flutter.dev/ui/accessibility-and-internationalization/accessibility, https://developer.android.com/about/versions/14/features#non-linear-font-scaling, https://developer.apple.com/design/human-interface-guidelines/typography#Supporting-Dynamic-Type
 
 ---
 
@@ -483,7 +577,7 @@ const NavigationDestination(
 Row(children: [Icon(Icons.local_fire_department, color: cs.primary), const Text('Streak')])
 ```
 
-Material `Icons` ship with Flutter. For iOS-styled icons, projects often use `CupertinoIcons` from the `cupertino_icons` package; the research for this file did not verify that API, so check the package docs before you rely on it.
+Material `Icons` ship with Flutter. For iOS-styled icons use `CupertinoIcons`; its API page says "make sure you add a dependency on cupertino_icons in your project's pubspec.yaml file" (`flutter create` adds it).
 
 **Why:** Emoji render differently per OS and vendor, ignore the theme color, and read as placeholder art. Apple asks that interface icons "use a consistent size, level of detail, stroke thickness (or weight), and perspective"; no Flutter or Apple doc mentions emoji. The scanner flags string literals made of one to three emoji; five or more in a row are treated as content (a reaction bar or picker) and skipped. An emoji inside a longer string, like the second slop line, is not scanned.
 Source: handfeel judgement, see docs/slop-catalog.md. Related: https://developer.apple.com/design/human-interface-guidelines/icons#Best-practices
@@ -625,7 +719,7 @@ RefreshIndicator.adaptive(
 )
 ```
 
-**Why:** `RefreshIndicator` "supports the Material 'swipe to refresh' idiom", and `RefreshIndicator.adaptive` picks the iOS style on iOS and macOS. Apple also asks apps to "Perform automatic content updates" so people do not start every refresh. The child must be scrollable, also when the list is short.
+**Why:** `RefreshIndicator` is the widget for the Material swipe-to-refresh idiom, and `RefreshIndicator.adaptive` picks the iOS style on iOS and macOS. Apple also asks apps to "Perform automatic content updates" so people do not start every refresh. The child must be scrollable, also when the list is short.
 Source: https://api.flutter.dev/flutter/material/RefreshIndicator-class.html, https://developer.apple.com/design/human-interface-guidelines/progress-indicators#Refresh-content-controls
 
 ### Loading states show content shapes [not scanned]
@@ -643,12 +737,52 @@ if (loading) {
   return ListView.builder(itemCount: 6, itemBuilder: (_, __) => const TxTileSkeleton());
 }
 // TxTileSkeleton: the same layout as TxTile, filled with cs.surfaceContainerHighest blocks
+
+// remote images: a placeholder while loading and a fallback on error
+FadeInImage.assetNetwork(
+  placeholder: 'assets/images/avatar_placeholder.png', // a small asset the app ships
+  image: url,
+  imageErrorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined),
+)
 ```
 
 Keep showing the last data during a refresh. For a short wait on a button action, put `CircularProgressIndicator.adaptive()` inside the button.
 
-**Why:** Flutter's cookbook: "the most important thing is to show your users that loading is taking place", and one popular approach is "a chrome color with a shimmer animation over the shapes that approximate the type of content that is loading." Apple: "Show something as soon as possible." The cookbook does not say "instead of a spinner"; that part is the HIG's guidance. Search for `return Center(child: CircularProgressIndicator` and the same inside `Scaffold(body:`.
-Source: https://docs.flutter.dev/cookbook/effects/shimmer-loading, https://developer.apple.com/design/human-interface-guidelines/loading#Best-practices
+**Why:** Flutter's cookbook: "the most important thing is to show your users that loading is taking place", and one popular approach is "a chrome color with a shimmer animation over the shapes that approximate the type of content that is loading." Apple: "Show something as soon as possible." The cookbook does not say "instead of a spinner"; that part is the HIG's guidance. `FadeInImage` "shows a placeholder image while the target image is loading", and `errorBuilder` / `imageErrorBuilder` replace a failed image instead of reporting the exception. Search for `return Center(child: CircularProgressIndicator`, the same inside `Scaffold(body:`, and `Image.network(` with no `loadingBuilder` or `errorBuilder`.
+Source: https://docs.flutter.dev/cookbook/effects/shimmer-loading, https://developer.apple.com/design/human-interface-guidelines/loading#Best-practices, https://api.flutter.dev/flutter/widgets/FadeInImage-class.html, https://api.flutter.dev/flutter/widgets/Image/errorBuilder.html
+
+### Empty and error states that say what to do [not scanned]
+
+**Slop:** a lone "No data" or the raw exception text.
+
+```dart
+if (snapshot.hasError) return Text(snapshot.error.toString());
+if (items.isEmpty) return const Center(child: Text('No data'));
+```
+
+**Fix:**
+
+```dart
+if (snapshot.hasError) {
+  return StateMessage(
+    title: "Couldn't load transactions",
+    body: 'Check your connection and try again.',
+    action: FilledButton(onPressed: retry, child: const Text('Try again')),
+  );
+}
+if (items.isEmpty) {
+  return StateMessage(
+    title: 'No transactions',
+    body: 'Transactions you add show up here.',
+    action: FilledButton(onPressed: add, child: const Text('Add transaction')),
+  );
+}
+```
+
+`StateMessage` is a small widget you write once. Keep the app's own wording.
+
+**Why:** Apple: "Provide clear next steps on any blank screens", and for errors: "display it as close to the problem as possible, avoid blame, and be clear about what someone can do to fix it." Search for `hasError`, `isEmpty` and `error.toString()` in widgets.
+Source: https://developer.apple.com/design/human-interface-guidelines/writing#Best-practices
 
 ### Respect reduced motion [not scanned]
 
@@ -678,6 +812,40 @@ Read `MediaQuery` in `didChangeDependencies` or `build`, not in `initState`.
 **Why:** `disableAnimations`: "Whether the platform is requesting that animations be disabled or reduced as much as possible." Apple: with Reduce Motion on, apps should reduce "automatic and repetitive animations, including zooming, scaling, and peripheral motion." Search for `.repeat(` on controllers and `Lottie.` with `repeat: true` in files with no `disableAnimations`.
 Source: https://api.flutter.dev/flutter/widgets/MediaQueryData/disableAnimations.html, https://api.flutter.dev/flutter/widgets/MediaQuery/disableAnimationsOf.html, https://developer.apple.com/design/human-interface-guidelines/accessibility#Cognitive
 
+### Start and end, not left and right [not scanned]
+
+Only if the app ships, or plans to ship, a right-to-left language.
+
+**Slop:**
+
+```dart
+const EdgeInsets.only(left: 16, right: 8)
+const Icon(Icons.chevron_right)
+```
+
+**Fix:**
+
+```dart
+const EdgeInsetsDirectional.only(start: 16, end: 8)
+Icon(Icons.adaptive.arrow_forward) // or an Icon with matchTextDirection: true
+```
+
+**Why:** `EdgeInsetsDirectional` pads "from the left in TextDirection.ltr text and padding from the right in TextDirection.rtl text without having to be aware of the current text direction." Apple: "Flip controls that show progress from one value to another." Search for `EdgeInsets.only(left:` and `Alignment.centerLeft` in apps with RTL locales.
+Source: https://api.flutter.dev/flutter/painting/EdgeInsetsDirectional-class.html, https://developer.apple.com/design/human-interface-guidelines/right-to-left
+
+### Native launch screen, no timed splash route [not scanned]
+
+**Slop:** a `SplashScreen` widget with a gradient, logo and tagline, shown on a timer before the first real screen.
+
+```dart
+Future.delayed(const Duration(seconds: 3), () => Navigator.pushReplacementNamed(context, '/home'));
+```
+
+**Fix:** remove the timed route. Configure the native launch screens (Android: `LaunchTheme` in `res/values/styles.xml`; iOS: `LaunchScreen.storyboard`) with a plain background and the app icon, and show the first screen as soon as it can render.
+
+**Why:** Apple: a launch screen "isn't an opportunity for artistic expression", "Avoid including text on your launch screen", and "Don't advertise." Android 12 and later launch with "a splash screen showing your app icon", and Android asks apps with a custom splash to "migrate your app to the SplashScreen compat library". A second splash drawn in Flutter only adds a wait. Flutter documents both native screens. Do not remove a splash that does real startup work; shorten it to that work.
+Source: https://developer.apple.com/design/human-interface-guidelines/launching#Launch-screens, https://developer.android.com/guide/topics/ui/splash-screen, https://docs.flutter.dev/platform-integration/android/splash-screen, https://docs.flutter.dev/platform-integration/ios/launch-screen
+
 ---
 
 ## Checklist before you report
@@ -685,7 +853,7 @@ Source: https://api.flutter.dev/flutter/widgets/MediaQueryData/disableAnimations
 - You confirmed the Flutter and Dart SDK versions, the app shell and the theme files, and every version-dependent fix matches them.
 - Every finding has `file:line`, the rule title, the scanner id (or "not scanned") and a one-line fix.
 - You ran `npx handfeel scan` (or read its output) and every scanner finding is fixed, reported, or explained as a false positive.
-- Findings the scanner cannot see (keyboard, `Opacity`, `dart:io` platform checks, lists, pull to refresh, loading, reduced motion, action-list dialogs) were checked by reading the screens.
+- Findings the scanner cannot see (keyboard, input types and autofill, back navigation, `Opacity`, large text, `dart:io` platform checks, lists, pull to refresh, loading and images, empty and error states, reduced motion, RTL, launch screen, action-list dialogs) were checked by reading the screens.
 - New colors, text styles and spacing go into the theme, not into widgets.
 - Light and dark themes were both considered for every color change.
 - Each fix touches one screen or one shared widget and can be reviewed alone.

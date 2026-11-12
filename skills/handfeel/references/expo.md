@@ -9,7 +9,7 @@ Confirm the stack before you apply any rule. Several fixes depend on the version
 - **Expo or bare React Native.** `package.json` has `expo` in `dependencies` for Expo. The major version of the `expo` package is the SDK number (`"expo": "~55.0.0"` is SDK 55). Bare React Native has `react-native` but no `expo`; Expo modules such as `expo-haptics` then need the Expo modules setup, so say so before you suggest one.
 - **React Native version.** Read `react-native` in `package.json`.
 - **Router.** Expo Router is in use when `expo-router` is a dependency and screens live in `app/` with `_layout.tsx` files. Otherwise look for `@react-navigation/*`.
-- **New Architecture.** Check `newArchEnabled` in `app.json` / `app.config.*` (Expo) or `android/gradle.properties` (bare).
+- **New Architecture.** Expo SDK 55 and later "run entirely on the New Architecture", and from React Native 0.82 "the New Architecture is always enabled and cannot be disabled". Only on SDK 54 or earlier (React Native 0.81 or earlier) check `newArchEnabled` in `app.json` / `app.config.*` (Expo) or `android/gradle.properties` (bare).
 - **Installed helpers.** Note which of these exist: `react-native-safe-area-context`, `expo-haptics`, `expo-system-ui`, `expo-status-bar`, `expo-image`, `expo-symbols`, `expo-blur`, `react-native-reanimated`. Adding a missing one is a dependency change (use `npx expo install <pkg>` so the version matches the SDK) and must be called out.
 
 Version-dependent choices:
@@ -18,11 +18,12 @@ Version-dependent choices:
 |---|---|---|
 | Native tabs import | Expo SDK | `expo-router/native-tabs` for SDK 58+, `expo-router/unstable-native-tabs` for SDK 54 to 57. Below SDK 54, use `Tabs` from `expo-router`. The child component names have changed between releases, so copy them from the docs page for the installed SDK. |
 | Android edge-to-edge | Expo SDK | SDK 55 changelog: "edge-to-edge is now mandatory when targeting Android 16+". `edgeToEdgeEnabled` is removed from app.json, and most `expo-navigation-bar` methods are "deprecated and no-op'd". |
-| `boxShadow` style | React Native version, New Architecture | reactnative.dev says `boxShadow` "is available on iOS and Android". The scanner's fix text says React Native 0.76+ with the New Architecture; the research for this file did not capture that version line, so confirm it on https://reactnative.dev/docs/shadow-props before relying on it. Otherwise use `shadow*` for iOS plus `elevation` for Android. |
-| `expo-symbols` on Android | installed `expo-symbols` version | Current docs: "SF Symbols on iOS and tvOS, and Material Symbols on Android and web". Older installs may only render on iOS; check the docs for the installed version. |
+| `boxShadow` style | New Architecture | reactnative.dev: "boxShadow is only available on the New Architecture. Outset shadows are only supported on Android 9+." On the legacy architecture use `shadow*` for iOS plus `elevation` for Android. |
+| `expo-symbols` on Android | installed `expo-symbols` version | Current docs: "On iOS and tvOS, it uses SF Symbols. On Android and web, it uses Material Symbols." Older installs may only render on iOS; check the docs for the installed version. |
+| Predictive back | Expo app config | `android.predictiveBackGestureEnabled` "Default to false". Bare apps set `android:enableOnBackInvokedCallback` in `AndroidManifest.xml`. |
 | `@expo/vector-icons` | Expo docs | The icons guide says it "will be deprecated and is not recommended", but still uses it in an example. Do not rip it out of a working app; prefer `expo-symbols` for new icons. |
 
-Sources: https://docs.expo.dev/router/advanced/native-tabs/, https://expo.dev/changelog/sdk-55, https://reactnative.dev/docs/shadow-props, https://docs.expo.dev/versions/latest/sdk/symbols/, https://docs.expo.dev/guides/icons/
+Sources: https://docs.expo.dev/router/advanced/native-tabs/, https://expo.dev/changelog/sdk-55, https://docs.expo.dev/guides/new-architecture/, https://reactnative.dev/docs/view-style-props#boxshadow, https://docs.expo.dev/versions/latest/sdk/symbols/, https://docs.expo.dev/guides/icons/, https://docs.expo.dev/versions/latest/config/app/#predictivebackgestureenabled
 
 ---
 
@@ -134,16 +135,18 @@ export default function Layout() {
     <NativeTabs>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="house.fill" md="home" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="stats">
         <NativeTabs.Trigger.Label>Stats</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="chart.bar.fill" md="bar_chart" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
 ```
 
-Older SDKs or React Navigation: `Tabs` from `expo-router` or `createBottomTabNavigator`.
+`NativeTabs.Trigger.Icon` needs SDK 55 or later; on SDK 54 import `Icon` and `Label` from `expo-router/unstable-native-tabs`. Older SDKs or React Navigation: `Tabs` from `expo-router` or `createBottomTabNavigator`.
 
 **Why:** Native tabs "use the native system tab bar"; on iOS 26 "the system draws the tab bar with Liquid Glass", and Android allows five tabs. Material puts navigation bars at "Three to five destinations of equal importance", and "The navigation drawer is being deprecated in the Material 3 expressive update". Apple: tab bars "let people quickly switch between sections ... while preserving the current navigation state". The scanner flags every import from `expo-router/drawer` or `@react-navigation/drawer`; it does not count destinations, so a drawer with many rarely used items or a tablet layout can be a valid choice.
 Source: https://docs.expo.dev/router/advanced/native-tabs/, https://developer.android.com/develop/ui/compose/components/navigation-bar, https://github.com/material-components/material-components-android/blob/master/docs/components/NavigationDrawer.md, https://developer.apple.com/design/human-interface-guidelines/tab-bars
@@ -196,7 +199,7 @@ const insets = useSafeAreaInsets();
 <View style={{ paddingBottom: insets.bottom }}>{bottomBar}</View>
 ```
 
-**Why:** reactnative.dev marks the core component "Deprecated. Use react-native-safe-area-context instead." and says it "is currently only applicable to iOS devices". Expo: the library "provides a flexible API for handling Android and iOS device's safe area insets". Screens inside a native stack or tab navigator with a header usually need only the bottom edge. The scanner flags the `SafeAreaView` import from `react-native`; hard-coded notch padding is not scanned.
+**Why:** reactnative.dev marks the core component as deprecated ("Use react-native-safe-area-context instead.") and says it "is currently only applicable to iOS devices". Expo: the library "provides a flexible API for handling Android and iOS device's safe area insets". Screens inside a native stack or tab navigator with a header usually need only the bottom edge. The scanner flags the `SafeAreaView` import from `react-native`; hard-coded notch padding is not scanned.
 Source: https://reactnative.dev/docs/safeareaview, https://docs.expo.dev/develop/user-interface/safe-areas/
 
 ### Android is edge-to-edge [not scanned]
@@ -241,8 +244,66 @@ Source: https://expo.dev/changelog/sdk-55, https://developer.android.com/about/v
 </KeyboardAvoidingView>
 ```
 
+Under a navigation header, pass `useHeaderHeight()` as `keyboardVerticalOffset`.
+
 **Why:** Expo: "On Android, Expo apps are edge-to-edge, so the window no longer resizes for the keyboard." "Set a `behavior` on both platforms." For iOS "`padding` usually works best", and "On Android, do not set `softwareKeyboardLayoutMode` to `pan` with `behavior="padding"`." `react-native-keyboard-controller` is a valid alternative. The scanner flags the first `TextInput` in a file that mentions none of `KeyboardAvoidingView`, `KeyboardAware*`, `keyboard-controller`, `automaticallyAdjustKeyboardInsets`, `KeyboardStickyView`, `KeyboardToolbar` or `softwareKeyboardLayoutMode`. It reports a false positive when the avoidance lives in a parent file, and it does not flag the iOS-only `behavior` pattern above.
 Source: https://docs.expo.dev/guides/keyboard-handling/, https://reactnative.dev/docs/keyboardavoidingview
+
+### Keyboard type, autofill and return key [not scanned]
+
+**Slop:** every field opens the default keyboard, the password manager never offers a login, and Return does nothing.
+
+```tsx
+<TextInput placeholder="Email" value={email} onChangeText={setEmail} />
+<TextInput placeholder="Password" value={pw} onChangeText={setPw} secureTextEntry />
+```
+
+**Fix:**
+
+```tsx
+<TextInput
+  placeholder="Email" value={email} onChangeText={setEmail}
+  keyboardType="email-address" autoComplete="email" autoCapitalize="none"
+  returnKeyType="next" onSubmitEditing={() => pwRef.current?.focus()} submitBehavior="submit"
+/>
+<TextInput
+  ref={pwRef} placeholder="Password" value={pw} onChangeText={setPw}
+  secureTextEntry autoComplete="current-password" returnKeyType="go" onSubmitEditing={signIn}
+/>
+```
+
+Use `new-password` on sign-up, `one-time-code` for SMS codes, `tel` with `keyboardType="phone-pad"`, and `decimal-pad` for amounts.
+
+**Why:** `autoComplete` "Specifies autocomplete hints for the system, so it can provide autofill", and the docs list values that "work across platforms". On `textContentType` they say "Avoid using both textContentType and autoComplete." `keyboardType` "Determines which keyboard to open", and `returnKeyType` "Determines how the return key should look." Apple: "Choose a keyboard that matches the type of content people are editing." Search for `TextInput` without `keyboardType` on fields named email, phone, amount or code, and password fields without `autoComplete`.
+Source: https://reactnative.dev/docs/textinput, https://developer.apple.com/design/human-interface-guidelines/virtual-keyboards#Best-practices
+
+### Screens are routes, so back works [not scanned]
+
+**Slop:** one screen that swaps its content from state, a custom header with its own back arrow, or the iOS back swipe turned off.
+
+```tsx
+const [screen, setScreen] = useState<'list' | 'detail'>('list');
+return screen === 'list' ? <List onOpen={() => setScreen('detail')} /> : <Detail onBack={() => setScreen('list')} />;
+// or: <Stack.Screen name="detail" options={{ gestureEnabled: false }} />
+```
+
+**Fix:**
+
+```tsx
+// app/detail/[id].tsx is its own route; the list links to it
+import { Link } from 'expo-router';
+
+<Link href={`/detail/${item.id}`}>{item.title}</Link>
+```
+
+Then opt in to predictive back on Android 13+ (the config option is off by default) and test that any custom back handling still runs:
+
+```json
+{ "expo": { "android": { "predictiveBackGestureEnabled": true } } }
+```
+
+**Why:** a state switch has no history. On iOS there is nothing for the edge swipe to pop, and on Android, with no back listener, React Native "programmatically invokes the default back button functionality to exit the app". Apple: "people expect to find a Back button in a top toolbar", and many apps "also offer a shortcut gesture", a swipe from the edge, "while continuing to provide the Back button". In the native stack, `gestureEnabled` ("Whether you can use gestures to dismiss this screen") defaults to `true`; leave it on. Search for `useState` holding a screen name, `gestureEnabled: false` and hand-made `headerLeft` back arrows.
+Source: https://developer.apple.com/design/human-interface-guidelines/gestures, https://reactnavigation.org/docs/native-stack-navigator, https://reactnative.dev/docs/backhandler, https://docs.expo.dev/versions/latest/config/app/#predictivebackgestureenabled
 
 ---
 
@@ -447,6 +508,30 @@ Then fix the layouts that break: let rows wrap, remove fixed heights around text
 **Why:** `allowFontScaling` (default `true`) "Specifies whether fonts should scale to respect Text Size accessibility settings." Apple: "Apps that don't respond to this setting can be difficult or impossible to use for people who rely on this feature." The scanner flags `allowFontScaling={false}`, `maxFontSizeMultiplier` of 1.15 or less, and assignments like `Text.allowFontScaling = false`. The `defaultProps` object form above is not caught; search for it.
 Source: https://reactnative.dev/docs/text#allowfontscaling, https://developer.apple.com/design/human-interface-guidelines/layout#Adaptability
 
+### Layouts that survive the largest text size [not scanned]
+
+**Slop:** fixed heights and one-line rows that clip or overlap once text grows.
+
+```tsx
+<View style={{ height: 56, flexDirection: 'row', alignItems: 'center' }}>
+  <Text numberOfLines={1}>{title}</Text>
+  <Text style={{ marginLeft: 'auto' }}>{amount}</Text>
+</View>
+```
+
+**Fix:**
+
+```tsx
+const { fontScale } = useWindowDimensions();
+<View style={{ minHeight: 56, paddingVertical: space.sm, flexDirection: fontScale > 1.5 ? 'column' : 'row', flexWrap: 'wrap', gap: space.xs }}>
+  <Text style={{ flexShrink: 1 }}>{title}</Text>
+  <Text>{amount}</Text>
+</View>
+```
+
+**Why:** Apple: "Make sure your app's layout adapts to all font sizes" and "Keep text truncation to a minimum as font size increases." Android 14 "supports font scaling up to 200%", and Android asks you to "perform UI testing with the maximum font size enabled (200%)". Test with the largest setting on both platforms; look for `height:` on views that contain `Text`, and `numberOfLines={1}` on titles.
+Source: https://developer.apple.com/design/human-interface-guidelines/typography#Supporting-Dynamic-Type, https://developer.android.com/about/versions/14/features#non-linear-font-scaling, https://reactnative.dev/docs/usewindowdimensions
+
 ---
 
 ## Icons
@@ -471,7 +556,7 @@ import { SymbolView } from 'expo-symbols';
 
 Check each symbol name in SF Symbols and Material Symbols before you use it.
 
-**Why:** `expo-symbols` uses "SF Symbols on iOS and tvOS, and Material Symbols on Android and web", so icons follow the tint color and match the system font. Emoji render differently per OS and vendor and ignore tint. Apple asks that interface icons "use a consistent size, level of detail, stroke thickness (or weight), and perspective"; it does not mention emoji. The scanner flags string literals made of one to three emoji; five or more in a row are treated as content (a reaction bar or picker) and skipped.
+**Why:** `expo-symbols`: "On iOS and tvOS, it uses SF Symbols. On Android and web, it uses Material Symbols." Icons follow the tint color and match the system font. Emoji render differently per OS and vendor and ignore tint. Apple asks that interface icons "use a consistent size, level of detail, stroke thickness (or weight), and perspective"; it does not mention emoji. The scanner flags string literals made of one to three emoji; five or more in a row are treated as content (a reaction bar or picker) and skipped.
 Source: handfeel judgement, see docs/slop-catalog.md. Related: https://docs.expo.dev/versions/latest/sdk/symbols/, https://developer.apple.com/design/human-interface-guidelines/icons#Best-practices
 
 ### Labels on icon-only controls [icon-button-no-label]
@@ -586,7 +671,7 @@ card: { shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 12 }, shadowOp
 
 ```tsx
 card: { borderRadius: 12, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)' },
-// if boxShadow is not available (see Detect):
+// legacy architecture (SDK 54 or earlier with newArchEnabled false):
 card: {
   borderRadius: 12,
   ...Platform.select({
@@ -596,8 +681,8 @@ card: {
 },
 ```
 
-**Why:** reactnative.dev: "only `shadowColor` works on both Android and iOS, all other `shadow` props only work on iOS", while `boxShadow` "is available on iOS and Android". Keep shadows small and neutral; many surfaces need none. The scanner flags a style object with `shadowColor`, `shadowRadius` or `shadowOffset` and no `elevation`, `boxShadow` or `android` key; objects under an `ios` key are skipped.
-Source: https://reactnative.dev/docs/shadow-props
+**Why:** reactnative.dev: "only `shadowColor` works on both Android and iOS, all other `shadow` props only work on iOS", while `boxShadow` "is available on iOS and Android" and "is only available on the New Architecture". Keep shadows small and neutral; many surfaces need none. The scanner flags a style object with `shadowColor`, `shadowRadius` or `shadowOffset` and no `elevation`, `boxShadow` or `android` key; objects under an `ios` key are skipped.
+Source: https://reactnative.dev/docs/shadow-props, https://reactnative.dev/docs/view-style-props#boxshadow
 
 ### Lists render lazily with stable keys [not scanned]
 
@@ -663,6 +748,33 @@ Keep showing the last data while a refresh runs. Put a small spinner inside a bu
 **Why:** Apple: "Show something as soon as possible. ... consider showing placeholder text, graphics, or animations as content loads". `expo-image` has "Disk and memory caching", a `placeholder` "to display while loading the proper image", and `transition`. Neither reactnative.dev nor docs.expo.dev gives skeleton guidance; the iOS rule is the source here.
 Source: https://developer.apple.com/design/human-interface-guidelines/loading#Best-practices, https://docs.expo.dev/versions/latest/sdk/image/
 
+### Empty and error states that say what to do [not scanned]
+
+**Slop:** an emoji and "Nothing here yet!", and a failed request that leaves the screen blank or shows the raw error.
+
+```tsx
+if (error) return <Text>{String(error)}</Text>;
+if (!items.length) return <Text>{'\u{1F4ED}'} Nothing here yet!</Text>;
+```
+
+**Fix:**
+
+```tsx
+if (error) {
+  return <StateMessage title="Couldn't load transactions" body="Check your connection and try again."
+    action={<Button title="Try again" onPress={refetch} />} />;
+}
+if (!items.length) {
+  return <StateMessage title="No transactions" body="Transactions you add show up here."
+    action={<Button title="Add transaction" onPress={add} />} />;
+}
+```
+
+`StateMessage` is a small component you write once. Keep the app's own wording, and keep showing stale data with an inline error when a refresh fails.
+
+**Why:** Apple: "Provide clear next steps on any blank screens", and for errors: "display it as close to the problem as possible, avoid blame, and be clear about what someone can do to fix it." Search for `isEmpty`, `length === 0` and `error &&` branches that render a single `Text`.
+Source: https://developer.apple.com/design/human-interface-guidelines/writing#Best-practices
+
 ### Respect Reduce Motion [not scanned]
 
 **Slop:** decorative loops that run regardless of the system setting.
@@ -688,6 +800,59 @@ useEffect(() => {
 **Why:** Apple: when Reduce Motion is on, "ensure your app or game responds by reducing automatic and repetitive animations, including zooming, scaling, and peripheral motion." Reanimated: "useReducedMotion lets you query the reduced motion system setting." On Android the RN event is also `true` when "Transition Animation Scale" is off. Look for `withRepeat(`, `Animated.loop(` and looping Lottie files with no reduce-motion check.
 Source: https://developer.apple.com/design/human-interface-guidelines/accessibility#Cognitive, https://reactnative.dev/docs/accessibilityinfo, https://docs.swmansion.com/react-native-reanimated/docs/device/useReducedMotion/
 
+### Start and end, not left and right [not scanned]
+
+Only if the app ships, or plans to ship, a right-to-left language.
+
+**Slop:**
+
+```tsx
+row: { paddingLeft: 16, marginRight: 8 },
+<SymbolView name={{ ios: 'chevron.right', android: 'chevron_right' }} />
+```
+
+**Fix:**
+
+```tsx
+row: { paddingStart: 16, marginEnd: 8 },
+<SymbolView name={{ ios: 'chevron.forward', android: 'chevron_forward' }} />
+```
+
+**Why:** "When direction is rtl, paddingStart is equivalent to paddingRight." Apple: "System-provided UI frameworks support right-to-left (RTL) by default", and asks you to "Flip controls that show progress from one value to another." Check the symbol names before you use them.
+Source: https://reactnative.dev/docs/layout-props, https://developer.apple.com/design/human-interface-guidelines/right-to-left
+
+### Splash screen and app icon [not scanned]
+
+**Slop:** a splash with a gradient, a tagline and a spinner, held for a fixed timer, and the template icon left in place.
+
+```tsx
+await new Promise((r) => setTimeout(r, 2500)); // "so people see the logo"
+```
+
+**Fix:**
+
+```json
+{
+  "expo": {
+    "icon": "./assets/images/icon.png",
+    "plugins": [["expo-splash-screen", {
+      "image": "./assets/images/splash-icon.png", "imageWidth": 200,
+      "backgroundColor": "#FFFFFF", "dark": { "backgroundColor": "#000000" }
+    }]]
+  }
+}
+```
+
+```tsx
+import * as SplashScreen from 'expo-splash-screen';
+SplashScreen.preventAutoHideAsync();
+// hide as soon as the first screen can render, not after a timer
+useEffect(() => { if (ready) SplashScreen.hide(); }, [ready]);
+```
+
+**Why:** Expo: "The goal should be to hide the splash screen as soon as possible." Apple: a launch screen "isn't an opportunity for artistic expression", "Avoid including text on your launch screen", and make sure it "matches the device's current orientation and appearance mode". Android 12 and later show a system splash with the app icon. For the icon, Expo recommends a 1024x1024 PNG with "no rounded corners or other transparent pixels", plus `android.adaptiveIcon` with a `monochromeImage` for themed icons. Apple: "Include text only when it's essential to your experience or brand." Check the config keys against the docs for the installed SDK.
+Source: https://docs.expo.dev/versions/latest/sdk/splash-screen/, https://docs.expo.dev/develop/user-interface/splash-screen-and-app-icon/, https://developer.apple.com/design/human-interface-guidelines/launching#Launch-screens, https://developer.apple.com/design/human-interface-guidelines/app-icons, https://developer.android.com/guide/topics/ui/splash-screen
+
 ---
 
 ## Checklist before you report
@@ -695,7 +860,7 @@ Source: https://developer.apple.com/design/human-interface-guidelines/accessibil
 - You confirmed Expo SDK, React Native version, router and New Architecture, and every version-dependent fix matches them.
 - Every finding has `file:line`, the rule title, the scanner id (or "not scanned") and a one-line fix.
 - You ran `npx handfeel scan` (or read its output) and every scanner finding is either fixed, reported, or explained as a false positive.
-- Findings the scanner cannot see (edge-to-edge, contrast, lists, pull to refresh, loading, reduce motion) were checked by reading the screens.
+- Findings the scanner cannot see (edge-to-edge, input types and autofill, back navigation, contrast, large text, lists, pull to refresh, loading, empty and error states, reduce motion, RTL, splash and icon) were checked by reading the screens.
 - Each fix touches one screen or one shared component and can be reviewed alone.
 - New colors, sizes and spacing go into the token files, not into screens.
 - Light and dark mode were both considered for every color change.

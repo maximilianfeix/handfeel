@@ -157,8 +157,8 @@ NavigationStack {
 }
 ```
 
-**Why:** `NavigationView` is deprecated. Apple: "Use a large title to help people stay oriented as they navigate and scroll", "Don't title windows with your app name", and keep the title "under 15 characters long". A custom header loses the back swipe and the large-title collapse.
-Source: https://developer.apple.com/documentation/swiftui/navigationview, https://developer.apple.com/design/human-interface-guidelines/toolbars#iOS
+**Why:** `NavigationView` is deprecated. Apple: "Use a large title to help people stay oriented as they navigate and scroll", "Don't title windows with your app name", and keep the title "under 15 characters long". Apple also says "people expect to find a Back button in a top toolbar" and that many apps "also offer a shortcut gesture", the edge swipe, "while continuing to provide the Back button". A hidden bar with a hand-made back arrow is where that swipe usually goes missing (handfeel observation; Apple does not document the interaction), so keep the system back button and test the edge swipe on every pushed screen.
+Source: https://developer.apple.com/documentation/swiftui/navigationview, https://developer.apple.com/design/human-interface-guidelines/toolbars#iOS, https://developer.apple.com/design/human-interface-guidelines/gestures
 
 ### Sheets with detents for short tasks [modal-instead-of-sheet]
 
@@ -238,7 +238,7 @@ Form {
 .scrollDismissesKeyboard(.interactively)
 ```
 
-**Why:** Apple: "Choose a keyboard that matches the type of content people are editing." By default SwiftUI sizes views so that "system content like the software keyboard or edges of the device don't obstruct your views", so `.ignoresSafeArea()` on a form undoes that. Use `.phonePad`, `.decimalPad` and `.URL` the same way.
+**Why:** Apple: "Choose a keyboard that matches the type of content people are editing" and "Consider customizing the Return key type if it helps clarify the text-entry experience." Use `.newPassword` and `.oneTimeCode` content types where they fit. By default SwiftUI sizes views so that "system content like the software keyboard or edges of the device don't obstruct your views", so `.ignoresSafeArea()` on a form undoes that. Use `.phonePad`, `.decimalPad` and `.URL` the same way.
 Source: https://developer.apple.com/design/human-interface-guidelines/virtual-keyboards#Best-practices, https://developer.apple.com/documentation/swiftui/view/ignoressafearea(_:edges:)
 
 ### Semantic system colors, not literals [hardcoded-color]
@@ -369,17 +369,40 @@ Text(title).font(.custom("Inter-Bold", size: 28, relativeTo: .title))
 @ScaledMetric(relativeTo: .body) private var iconSize = 24.0
 ```
 
-**Why:** Apple says text styles "ensure support for Dynamic Type", `custom(_:size:)` scales relative to body (use `relativeTo:` for headings), and `custom(_:fixedSize:)` does "not scale with Dynamic Type". Apple does not say `.system(size:)` ignores Dynamic Type; the problem is that it is not tied to a text style. Also: "avoid Ultralight, Thin, and Light font weights", and 11 pt is the iOS minimum.
-Source: https://developer.apple.com/design/human-interface-guidelines/typography#Using-system-fonts, https://developer.apple.com/design/human-interface-guidelines/typography#Ensuring-legibility, https://developer.apple.com/documentation/swiftui/applying-custom-fonts-to-text
+**Why:** Apple: "Using text styles with the system fonts also ensures support for Dynamic Type". `custom(_:size:)` scales relative to body (use `relativeTo:` for headings), and `custom(_:fixedSize:)` creates a font "that does not scale with Dynamic Type." Apple does not say `.system(size:)` ignores Dynamic Type; the problem is that it is not tied to a text style. Also: "avoid Ultralight, Thin, and Light font weights", and 11 pt is the iOS minimum.
+Source: https://developer.apple.com/design/human-interface-guidelines/typography#Using-system-fonts, https://developer.apple.com/design/human-interface-guidelines/typography#Ensuring-legibility, https://developer.apple.com/documentation/swiftui/applying-custom-fonts-to-text, https://developer.apple.com/documentation/swiftui/font/custom(_:fixedsize:)
+
+### Layouts that survive the largest text size [not scanned]
+
+**Slop:** fixed frames and one-line rows that clip at accessibility sizes.
+
+```swift
+HStack { Text(title).lineLimit(1); Spacer(); Text(amount) }
+    .frame(height: 56)
+```
+
+**Fix:** let rows grow, and stack them when the text is very large.
+
+```swift
+@Environment(\.dynamicTypeSize) private var typeSize
+
+let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading)) : AnyLayout(HStackLayout())
+layout { Text(title); Spacer(minLength: 8); Text(amount) }
+    .frame(minHeight: 44)
+// or ViewThatFits { HStack { ... }; VStack(alignment: .leading) { ... } }   // iOS 16+
+```
+
+**Why:** Apple: "Make sure your app's layout adapts to all font sizes" and "Keep text truncation to a minimum as font size increases." `isAccessibilitySize` is "A Boolean value indicating whether the size is one that is associated with accessibility" (iOS 15+); `AnyLayout` and `ViewThatFits` need iOS 16. Check every screen at the largest accessibility size in the simulator or with previews such as `.dynamicTypeSize(.accessibility5)`.
+Source: https://developer.apple.com/design/human-interface-guidelines/typography#Supporting-Dynamic-Type, https://developer.apple.com/documentation/swiftui/dynamictypesize/isaccessibilitysize, https://developer.apple.com/documentation/swiftui/viewthatfits
 
 ### SF Symbols, not emoji [emoji-as-icon]
 
 **Slop:** Emoji as button icons, tab icons and section headers.
 
 ```swift
-Button("🔥 Start workout") { start() }
-Text("📊 Stats").font(.headline)
-HomeView().tabItem { Text("🏠") }
+Button("\u{1F525} Start workout") { start() }    // fire emoji
+Text("\u{1F4CA} Stats").font(.headline)          // bar chart emoji
+HomeView().tabItem { Text("\u{1F3E0}") }         // house emoji
 ```
 
 **Fix:** SF Symbols through `Label` or `Image(systemName:)`.
@@ -391,7 +414,7 @@ HomeView().tabItem { Label("Home", systemImage: "house") }
 ```
 
 **Why:** The HIG does not mention emoji; the ban is handfeel judgement. Related Apple guidance: symbols work "wherever interface icons can appear", "When you use SF Symbols, you get icons that scale automatically with Dynamic Type size changes", and interface icons "need to use a consistent size, level of detail, stroke thickness (or weight), and perspective". Emoji that are content (reactions, a mood picker, user text) stay.
-Source: handfeel judgement, see docs/slop-catalog.md. Related: https://developer.apple.com/design/human-interface-guidelines/sf-symbols, https://developer.apple.com/design/human-interface-guidelines/icons#Best-practices
+Source: handfeel judgement, see docs/slop-catalog.md. Related: https://developer.apple.com/design/human-interface-guidelines/sf-symbols, https://developer.apple.com/design/human-interface-guidelines/typography#Supporting-Dynamic-Type, https://developer.apple.com/design/human-interface-guidelines/icons#Best-practices
 
 ### Labels on icon-only controls, hide decoration [not scanned]
 
@@ -490,17 +513,24 @@ if isLoading {
 FeedList(items: isLoading ? Item.placeholders : items)
     .redacted(reason: isLoading ? .placeholder : [])
 ProgressView(value: progress) { Text("Importing 12 of 40 photos") }
+AsyncImage(url: avatarURL) { image in
+    image.resizable().scaledToFill()
+} placeholder: {
+    Color(.secondarySystemFill)
+}
+.frame(width: 48, height: 48).clipShape(Circle())
 ```
 
-**Why:** Apple: "Show something as soon as possible" and "When possible, use a determinate progress indicator." It also says to avoid "vague terms like loading or authenticating".
-Source: https://developer.apple.com/design/human-interface-guidelines/loading#Best-practices, https://developer.apple.com/design/human-interface-guidelines/progress-indicators#Best-practices
+**Why:** Apple: "Show something as soon as possible" and "When possible, use a determinate progress indicator." It also says to avoid "vague terms like loading or authenticating". `AsyncImage` is "A view that asynchronously loads and displays an image" (iOS 15+); give it a placeholder the size of the final image so rows do not jump.
+Source: https://developer.apple.com/design/human-interface-guidelines/loading#Best-practices, https://developer.apple.com/design/human-interface-guidelines/progress-indicators#Best-practices, https://developer.apple.com/documentation/swiftui/asyncimage
 
-### Empty states that explain and offer an action [not scanned]
+### Empty and error states that explain and offer an action [not scanned]
 
-**Slop:** A gray "No items" and nothing else.
+**Slop:** A gray "No items" and nothing else, or the raw error text.
 
 ```swift
 if items.isEmpty { Text("No items").foregroundColor(.gray) }
+if let error { Text(error.localizedDescription) }
 ```
 
 **Fix:** Say what goes here and give the action.
@@ -516,9 +546,10 @@ if items.isEmpty {
     }
 }
 // search: ContentUnavailableView.search(text: query)
+// error: the same view with "Couldn't Load Workouts", what to check, and a "Try Again" button
 ```
 
-**Why:** Apple: "Provide clear next steps on any blank screens" and "give them a button or link to do so if possible". `ContentUnavailableView` is meant for "a list without items, a search that returns no results". Below iOS 17, build the same thing from `Label`, `Text` and `Button`. Keep the app's own wording; do not invent features in the description.
+**Why:** Apple: "Provide clear next steps on any blank screens" and "give them a button or link to do so if possible". `ContentUnavailableView` is meant for "a list without items, a search that returns no results". For errors: "display it as close to the problem as possible, avoid blame, and be clear about what someone can do to fix it." Below iOS 17, build the same thing from `Label`, `Text` and `Button`. Keep the app's own wording; do not invent features in the description.
 Source: https://developer.apple.com/design/human-interface-guidelines/writing#Best-practices, https://developer.apple.com/documentation/swiftui/contentunavailableview
 
 ### Respect Reduce Motion [not scanned]
@@ -563,6 +594,34 @@ Text("Pro").foregroundStyle(.black).padding(4).background(Color.yellow)
 **Why:** Apple uses WCAG AA as guidance: 4.5:1 for text up to 17 pt, 3:1 for 18 pt or bold, and "check the minimum contrast in both light and dark appearances". When both colors are literals, compute the ratio; text over images or gradients needs a look at the rendered screen.
 Source: https://developer.apple.com/design/human-interface-guidelines/accessibility#Vision, https://developer.apple.com/design/human-interface-guidelines/dark-mode#Dark-Mode-colors
 
+### Leading and trailing, not left and right [not scanned]
+
+Only if the app ships, or plans to ship, a right-to-left language. SwiftUI already uses leading and trailing; the slop is hard-coded direction.
+
+```swift
+Image(systemName: "chevron.right")                 // slop: points the wrong way in RTL
+.frame(maxWidth: .infinity, alignment: .leading)   // fine
+.environment(\.layoutDirection, .leftToRight)      // slop: forces LTR on the whole screen
+```
+
+**Fix:** use `chevron.forward` / `chevron.backward` and remove forced layout directions, except around content that must stay LTR such as a phone number.
+
+**Why:** Apple: "System-provided UI frameworks support right-to-left (RTL) by default", "Flip controls that show progress from one value to another", and numerals such as phone numbers "always appear in the same order". Preview with `.environment(\.layoutDirection, .rightToLeft)`.
+Source: https://developer.apple.com/design/human-interface-guidelines/right-to-left
+
+### A quiet launch screen and a layered app icon [not scanned]
+
+**Slop:** a SwiftUI "splash" view with a gradient, logo and tagline shown on a timer, and an icon with the app name written in it.
+
+```swift
+.onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 2) { showSplash = false } }
+```
+
+**Fix:** remove the timed view. Set `UILaunchScreen` in Info.plist (a background color that matches the first screen, in light and dark), and show the first screen as soon as it is ready. Build the icon in Icon Composer with layers, and check the dark, clear and tinted appearances.
+
+**Why:** Apple: a launch screen "isn't an opportunity for artistic expression", "Design a launch screen that's nearly identical to the first screen of your app or game", "Avoid including text on your launch screen", and "Don't advertise." For icons: "Include text only when it's essential to your experience or brand", and people can choose "default, dark, clear, or tinted" icons; "the system automatically generates variants you don't provide." A timed splash that does real startup work can stay; shorten it to that work.
+Source: https://developer.apple.com/design/human-interface-guidelines/launching#Launch-screens, https://developer.apple.com/design/human-interface-guidelines/app-icons, https://developer.apple.com/documentation/bundleresources/information-property-list/uilaunchscreen
+
 ## Checklist before you report
 
 - You confirmed SwiftUI and read the deployment target, and every suggested API is available at that target or wrapped in `if #available`.
@@ -573,7 +632,7 @@ Source: https://developer.apple.com/design/human-interface-guidelines/accessibil
 - Top-level navigation is a `TabView`; screens use `NavigationStack` with short titles.
 - No forced color scheme; screens use semantic colors and were checked in light and dark (previews count only if you ran them).
 - Fonts map to text styles; no size under 11 pt, no ultralight/thin/light UI text.
-- Lists, empty states and loading states use the system patterns above.
+- Lists, empty, error and loading states use the system patterns above, and screens were checked at the largest accessibility text size (or you said you could not run them).
 - In fix mode, each change is small, scoped to one screen, and listed with its file.
 - You stated plainly whether you built the app, ran it in a simulator or on a device, or neither.
 
