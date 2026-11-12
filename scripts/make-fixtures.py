@@ -167,6 +167,12 @@ add('no-haptics', 'flutter',
 add('no-dark-mode', 'flutter',
     fl("Widget app() => MaterialApp(theme: ThemeData());\n"),
     fl("Widget app() => MaterialApp(theme: ThemeData(), darkTheme: ThemeData(brightness: Brightness.dark));\n"))
+add('no-dark-mode', 'flutter-dark-only',
+    fl("Widget app() => MaterialApp(theme: ThemeData(brightness: Brightness.dark));\n"),
+    fl("Widget app() => MaterialApp(theme: ThemeData(), darkTheme: ThemeData(brightness: Brightness.dark), themeMode: ThemeMode.system);\n"))
+add('no-dark-mode', 'flutter-forced-mode',
+    fl("Widget app() => MaterialApp(theme: ThemeData(), darkTheme: ThemeData(brightness: Brightness.dark), themeMode: ThemeMode.dark);\n"),
+    fl("Widget app() => MaterialApp(theme: ThemeData(), darkTheme: ThemeData(brightness: Brightness.dark));\n"))
 add('no-platform-adaptation', 'flutter',
     fl("Widget s() => Switch(value: true, onChanged: (_) {});\n"),
     fl("Widget s() => Switch.adaptive(value: true, onChanged: (_) {});\n"))

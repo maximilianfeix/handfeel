@@ -4,6 +4,9 @@ import { badgeUrl, makeStyle, renderJson, renderMarkdown, renderSarif, renderTex
 import { ruleCatalog } from './rules/index.js';
 import { PLATFORM_LABEL, type Platform } from './types.js';
 import { VERSION } from './version.js';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const HELP = `handfeel ${VERSION}
 Find the AI look in mobile apps. Static, offline, no AI calls.
@@ -13,6 +16,7 @@ Usage
   handfeel rules               List every rule with its weight and cap
   handfeel explain <rule>      Why a rule exists, how to fix it, sources
   handfeel badge [dir]         Print a README badge with your score
+  handfeel init cursor         Write .cursor/rules/handfeel.mdc into this project
 
 Options for scan
   --json                       Machine-readable result
@@ -59,7 +63,7 @@ function main(): number {
     console.log(HELP);
     return 0;
   }
-  if (!cmd || !['scan', 'rules', 'explain', 'badge'].includes(cmd)) {
+  if (!cmd || !['scan', 'rules', 'explain', 'badge', 'init'].includes(cmd)) {
     if (!cmd) {
       console.log(HELP);
       return 0;
@@ -102,6 +106,38 @@ function main(): number {
     console.log(`  ${st.dim('sources')}`);
     for (const s of r.sources) console.log(`  ${s.title}\n  ${st.dim(s.url)}`);
     console.log('');
+    return 0;
+  }
+
+  if (cmd === 'init') {
+    if (args[1] !== 'cursor') {
+      console.error('Usage: handfeel init cursor   (Claude Code, Codex and others: npx skills add maximilianfeix/handfeel)');
+      return 2;
+    }
+    const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+    const skill = join(pkgRoot, 'skills', 'handfeel');
+    const body = readFileSync(join(skill, 'SKILL.md'), 'utf8').replace(/^---[\s\S]*?---\n/, '');
+    const signs = readFileSync(join(skill, 'references', 'signs.md'), 'utf8');
+    const out = join(process.cwd(), '.cursor', 'rules', 'handfeel.mdc');
+    if (existsSync(out) && !flags.force) {
+      console.error(`${out} exists. Use --force to overwrite.`);
+      return 1;
+    }
+    const mdc = [
+      '---',
+      'description: Remove the AI look from mobile app screens (Expo/React Native, Flutter, SwiftUI, Jetpack Compose). Use when asked to audit, polish, unslop or make an app feel native.',
+      'globs: ["**/*.tsx", "**/*.jsx", "**/*.dart", "**/*.swift", "**/*.kt"]',
+      'alwaysApply: false',
+      '---',
+      '',
+      body.replace(/\]\(references\//g, '](https://github.com/maximilianfeix/handfeel/blob/main/skills/handfeel/references/'),
+      '',
+      signs.replace(/^# /m, '## '),
+      '',
+    ].join('\n');
+    mkdirSync(dirname(out), { recursive: true });
+    writeFileSync(out, mdc);
+    console.log(`Wrote ${out}`);
     return 0;
   }
 

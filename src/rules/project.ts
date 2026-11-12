@@ -68,7 +68,13 @@ export const noDarkMode: Rule = {
         if (p.manifests.appJson.length && !automatic) return `app.json userInterfaceStyle is ${styles[0] ? `"${styles[0]}"` : 'not set (Expo defaults to "light")'}, so the OS keeps the app light.`;
         return null;
       },
-      flutter: () => (anyCode(p, 'flutter', /darkTheme:|Brightness\.dark|platformBrightnessOf|MediaQuery\.of\(context\)\.platformBrightness|CupertinoDynamicColor/) ? null : 'MaterialApp has no darkTheme and nothing reads the platform brightness.'),
+      flutter: () => {
+        const forced = filesOf(p, 'flutter').flatMap((f) => [...f.code.matchAll(/themeMode:\s*ThemeMode\.(light|dark)\b/g)].map((m) => m[1]));
+        if (forced.length) return `themeMode: ThemeMode.${forced[0]} forces one appearance and ignores the system setting.`;
+        if (anyCode(p, 'flutter', /darkTheme:|platformBrightnessOf|\.platformBrightness\b|CupertinoDynamicColor/)) return null;
+        if (anyCode(p, 'flutter', /Brightness\.dark/)) return 'There is only a dark theme: the app ignores the system appearance (no light theme / darkTheme pair).';
+        return 'MaterialApp has no darkTheme and nothing reads the platform brightness.';
+      },
       compose: () => (anyCode(p, 'compose', /isSystemInDarkTheme|darkColorScheme|dynamicDarkColorScheme/) ? null : 'No darkColorScheme / isSystemInDarkTheme.'),
     });
   },
