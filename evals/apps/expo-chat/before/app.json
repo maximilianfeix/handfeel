@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Gather",
+    "slug": "gather-chat",
+    "version": "1.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "backgroundColor": "#F8F9F6",
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.gather.chat" },
+    "android": { "package": "com.gather.chat", "softwareKeyboardLayoutMode": "resize" },
+    "web": { "name": "Gather — a little closer", "shortName": "Gather", "backgroundColor": "#F8F9F6", "themeColor": "#245C49" }
+  }
+}
