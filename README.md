@@ -6,7 +6,6 @@
 </p>
 
 <p align="center">
-  <b>Find the AI look in your mobile app.</b><br>
   A scanner that scores Expo / React Native, Flutter, SwiftUI and Jetpack Compose code from 0 to 100,<br>
   and an agent skill that fixes what it finds.
 </p>
