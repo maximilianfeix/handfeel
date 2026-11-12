@@ -23,16 +23,32 @@ export interface Lexed {
 
 const blank = (s: string) => s.replace(/[^\n]/g, ' ');
 
+/**
+ * Copy of `text` with every [start, end) range blanked to spaces, newlines kept, so offsets and
+ * line numbers stay valid. Ranges may come in any order and may overlap.
+ */
+export function blankRanges(text: string, ranges: [number, number][]): string {
+  if (!ranges.length) return text;
+  const sorted = [...ranges].sort((x, y) => x[0] - y[0]);
+  const out: string[] = [];
+  let pos = 0;
+  for (const [a0, b0] of sorted) {
+    const a = Math.max(a0, pos);
+    const b = Math.min(b0, text.length);
+    if (b <= a) continue;
+    out.push(text.slice(pos, a), blank(text.slice(a, b)));
+    pos = b;
+  }
+  out.push(text.slice(pos));
+  return out.join('');
+}
+
 export function lex(text: string, lang: Lang): Lexed {
-  const code = text.split('');
-  const masked = text.split('');
+  const comments: [number, number][] = [];
+  const contents: [number, number][] = [];
   const strings: StringLit[] = [];
   const n = text.length;
   let i = 0;
-
-  const blankRange = (arr: string[], a: number, b: number) => {
-    for (let k = a; k < b; k++) if (arr[k] !== '\n') arr[k] = ' ';
-  };
 
   // Skips an interpolation body starting at `i` (just after `${` or `\(`), returns index after the closer.
   const skipInterpolation = (start: number, open: string, close: string): number => {
@@ -66,8 +82,7 @@ export function lex(text: string, lang: Lang): Lexed {
     if (c === '/' && next === '/') {
       const end = text.indexOf('\n', i);
       const stop = end === -1 ? n : end;
-      blankRange(code, i, stop);
-      blankRange(masked, i, stop);
+      comments.push([i, stop]);
       i = stop;
       continue;
     }
@@ -84,8 +99,7 @@ export function lex(text: string, lang: Lang): Lexed {
           k += 2;
         } else k++;
       }
-      blankRange(code, i, k);
-      blankRange(masked, i, k);
+      comments.push([i, k]);
       i = k;
       continue;
     }
@@ -142,7 +156,7 @@ export function lex(text: string, lang: Lang): Lexed {
       const end = Math.min(n, k + (text.startsWith(closer, k) ? closer.length : 0));
       strings.push({ value, start: i, end });
       // mask contents but keep the quote characters
-      blankRange(masked, s + delim.length, Math.max(s + delim.length, end - closer.length));
+      contents.push([s + delim.length, Math.max(s + delim.length, end - closer.length)]);
       i = end;
       continue;
     }
@@ -150,14 +164,14 @@ export function lex(text: string, lang: Lang): Lexed {
     i++;
   }
 
-  return { text, code: code.join(''), masked: masked.join(''), strings };
+  return { text, code: blankRanges(text, comments), masked: blankRanges(text, [...comments, ...contents]), strings };
 }
 
 /** Offsets -> 1-based line/column. */
 export class LineIndex {
   private starts: number[] = [0];
   constructor(text: string) {
-    for (let i = 0; i < text.length; i++) if (text[i] === '\n') this.starts.push(i + 1);
+    for (let i = text.indexOf('\n'); i !== -1; i = text.indexOf('\n', i + 1)) this.starts.push(i + 1);
   }
   pos(offset: number): { line: number; column: number } {
     let lo = 0;
@@ -178,17 +192,33 @@ export class LineIndex {
  */
 export function matchBracket(masked: string, open: number): number {
   const o = masked[open];
-  const c = o === '(' ? ')' : o === '{' ? '}' : o === '[' ? ']' : '';
-  if (!c) return -1;
-  let depth = 0;
-  for (let k = open; k < masked.length; k++) {
-    if (masked[k] === o) depth++;
-    else if (masked[k] === c) {
-      depth--;
-      if (depth === 0) return k;
+  if (o !== '(' && o !== '{' && o !== '[') return -1;
+  return bracketTable(masked)[open];
+}
+
+/**
+ * Matching closer for every opener, computed once per text (O(n)). Scanning forward from each
+ * opener is quadratic when a large file has many unclosed brackets (half-written code).
+ * Each bracket kind is matched on its own, as the forward scan did.
+ */
+let tableText: string | null = null;
+let table: Int32Array = new Int32Array(0);
+function bracketTable(masked: string): Int32Array {
+  if (masked === tableText) return table;
+  const t = new Int32Array(masked.length).fill(-1);
+  const stacks: Record<string, number[]> = { '(': [], '{': [], '[': [] };
+  const openerOf: Record<string, string> = { ')': '(', '}': '{', ']': '[' };
+  for (let k = 0; k < masked.length; k++) {
+    const c = masked[k];
+    if (c === '(' || c === '{' || c === '[') stacks[c].push(k);
+    else if (c === ')' || c === '}' || c === ']') {
+      const at = stacks[openerOf[c]].pop();
+      if (at !== undefined) t[at] = k;
     }
   }
-  return -1;
+  tableText = masked;
+  table = t;
+  return t;
 }
 
 /**

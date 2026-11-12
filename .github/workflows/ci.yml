@@ -25,6 +25,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - name: Check package contents
+        run: node scripts/check-pack.mjs
       - name: Pack smoke test
         shell: bash
         run: |
@@ -34,7 +36,11 @@ jobs:
           npm install "$GITHUB_WORKSPACE"/handfeel-*.tgz
           npx handfeel --version
           npx handfeel scan "$GITHUB_WORKSPACE/evals/apps/expo-budget/before" --summary
+          npx handfeel scan --demo --summary
           npx handfeel rules > /dev/null
+          # a folder without app source must not get a score
+          mkdir -p /tmp/empty && set +e && npx handfeel scan /tmp/empty; code=$?; set -e
+          test "$code" = 2
 
   plugin:
     runs-on: ubuntu-latest

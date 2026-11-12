@@ -16,7 +16,7 @@ for (const { rule, platform } of pairs) {
   test(`${rule} [${platform}] flags the bad fixture`, () => {
     const r = scan(join(FIX, rule, platform, 'bad'), { only: [rule] });
     assert.ok(r.findings.length > 0, `expected findings for ${rule} in bad/, got none`);
-    assert.ok(r.score < 100, `${rule} bad/ should cost points`);
+    assert.ok(r.score !== null && r.score < 100, `${rule} bad/ should cost points`);
     assert.ok(r.findings.every((f) => f.rule === rule));
   });
   test(`${rule} [${platform}] passes the good fixture`, () => {
