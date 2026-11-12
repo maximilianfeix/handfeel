@@ -50,12 +50,18 @@ test('--ignore glob skips paths; node_modules and tests are never scanned', () =
 test('a file that does not parse is skipped, not fatal', () => {
   const dir = project({ 'package.json': pkg, 'Bad.tsx': 'export default () => <View><<<' });
   const r = scan(dir);
-  assert.ok(r.score >= 0);
+  assert.equal(r.filesScanned, 0);
+  assert.deepEqual(r.skipped.map((s) => s.file), ['Bad.tsx']);
 });
 
-test('non-mobile folders scan to an empty result', () => {
-  const dir = project({ 'index.js': 'console.log(1)' });
+test('non-mobile folders get no score and say what was looked for', () => {
+  const dir = project({ 'index.js': 'console.log(1)', 'package.json': JSON.stringify({ dependencies: { react: '19.0.0' } }) });
   const r = scan(dir);
   assert.equal(r.filesScanned, 0);
-  assert.equal(r.score, 100);
+  assert.equal(r.score, null);
+  assert.equal(r.grade, null);
+  assert.match(r.reason ?? '', /package\.json with react-native or expo/);
+  assert.match(r.reason ?? '', /pubspec\.yaml/);
+  assert.match(r.reason ?? '', /SwiftUI/);
+  assert.match(r.reason ?? '', /androidx\.compose/);
 });

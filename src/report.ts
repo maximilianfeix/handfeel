@@ -1,4 +1,5 @@
 import { PLATFORM_LABEL, type ScanResult } from './types.js';
+import { LOOKED_FOR } from './scan.js';
 import { ruleCatalog } from './rules/index.js';
 import { REFERENCE_FILES } from './score.js';
 
@@ -30,8 +31,20 @@ export function renderText(r: ScanResult, st: Style, opts: { summary?: boolean; 
   out.push('');
   out.push(`  ${st.bold('handfeel')} ${st.dim(r.version)}  ${st.dim('·')}  ${pl}  ${st.dim('·')}  ${r.filesScanned} files`);
   out.push('');
+  if (r.score === null) {
+    out.push(`  No mobile app source found in ${opts.root ?? r.root}, so there is no score.`);
+    out.push('');
+    out.push(`  ${st.dim('Looked for:')}`);
+    for (const l of LOOKED_FOR) out.push(`    ${l}`);
+    out.push(`  ${st.dim('Skipped: node_modules, build output, tests, native ios/ and android/ folders, and hidden folders.')}`);
+    if (r.skipped.length) out.push(`  ${r.skipped.length} file(s) could not be read. Use --json to see which and why.`);
+    out.push('');
+    out.push(`  Run it on the folder that holds the app (where package.json or pubspec.yaml is), or try: npx handfeel scan --demo`);
+    out.push('');
+    return out.join('\n');
+  }
   const c = scoreColor(r.score, st);
-  out.push(`  ${c(st.bold(padL(String(r.score), 3)))}${st.dim(' / 100')}   ${c(r.grade)}`);
+  out.push(`  ${c(st.bold(padL(String(r.score), 3)))}${st.dim(' / 100')}   ${c(r.grade ?? '')}`);
   out.push('');
   if (r.breakdown.length) {
     out.push(`  ${st.dim('where the points went')}`);
@@ -60,9 +73,8 @@ export function renderText(r: ScanResult, st: Style, opts: { summary?: boolean; 
     }
     out.push('');
   }
-  if (!r.findings.length && r.filesScanned) out.push(`  ${st.green('Nothing to report.')}`);
-  if (!r.filesScanned) out.push(`  No Expo/React Native, Flutter, SwiftUI or Compose source found under ${opts.root ?? r.root}.`);
-  if (r.skipped.length) out.push(st.dim(`  ${r.skipped.length} file(s) skipped (parse errors). Use --json to see them.`));
+  if (!r.findings.length) out.push(`  ${st.green('Nothing to report.')}`);
+  if (r.skipped.length) out.push(st.dim(`  ${r.skipped.length} file(s) skipped (unreadable, too large, minified or not parseable). Use --json to see which and why.`));
   if (r.findings.length) out.push(st.dim('  handfeel explain <rule>  shows why a rule exists and how to fix it.'));
   out.push('');
   return out.join('\n');
@@ -112,6 +124,13 @@ export function badgeUrl(score: number): string {
 
 export function renderMarkdown(r: ScanResult): string {
   const out: string[] = [];
+  if (r.score === null) {
+    out.push('### handfeel: no score');
+    out.push('');
+    out.push(r.reason ?? 'No mobile app source found.');
+    out.push('');
+    return out.join('\n');
+  }
   out.push(`### handfeel: ${r.score}/100 (${r.grade})`);
   out.push('');
   out.push(`${r.platforms.map((p) => PLATFORM_LABEL[p]).join(', ')} · ${r.filesScanned} files · ${r.findings.length} findings`);
@@ -123,4 +142,43 @@ export function renderMarkdown(r: ScanResult): string {
     out.push('');
   }
   return out.join('\n');
+}
+
+const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+
+/**
+ * A 1200×630 score card (the size social networks use for link previews), as plain SVG text.
+ * Brand colors: ink background, paper text, clay accent. System fonts, real <text> elements.
+ */
+export function renderCard(r: ScanResult): string {
+  if (r.score === null) throw new Error('no score to put on a card');
+  const INK = '#151412';
+  const PAPER = '#F4F1EA';
+  const CLAY = '#E0592A';
+  const MUTED = '#A8A397';
+  const font = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`;
+  const mono = `ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
+  const platforms = r.platforms.map((p) => PLATFORM_LABEL[p]).join(' · ');
+  const top = r.breakdown.filter((b) => b.penalty > 0).slice(0, 3);
+  const lines: string[] = [];
+  lines.push(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="${xml(`handfeel score ${r.score} of 100: ${r.grade}`)}">`);
+  lines.push(`  <rect width="1200" height="630" fill="${INK}"/>`);
+  lines.push(`  <rect x="0" y="0" width="16" height="630" fill="${CLAY}"/>`);
+  lines.push(`  <text x="80" y="110" fill="${PAPER}" font-family="${xml(font)}" font-size="40" font-weight="700">handfeel</text>`);
+  lines.push(`  <text x="80" y="160" fill="${MUTED}" font-family="${xml(font)}" font-size="28">${xml(platforms)} · ${r.filesScanned} files</text>`);
+  lines.push(`  <text x="72" y="360" fill="${CLAY}" font-family="${xml(font)}" font-size="200" font-weight="700">${r.score}</text>`);
+  const scoreWidth = String(r.score).length * 112 + 72;
+  lines.push(`  <text x="${scoreWidth + 20}" y="360" fill="${MUTED}" font-family="${xml(font)}" font-size="56">/ 100</text>`);
+  lines.push(`  <text x="80" y="430" fill="${PAPER}" font-family="${xml(font)}" font-size="44" font-weight="600">${xml(r.grade ?? '')}</text>`);
+  lines.push(`  <text x="660" y="230" fill="${MUTED}" font-family="${xml(font)}" font-size="24">${top.length ? 'where the points went' : 'no deductions'}</text>`);
+  top.forEach((b, i) => {
+    const y = 290 + i * 64;
+    lines.push(`  <text x="660" y="${y}" fill="${CLAY}" font-family="${xml(mono)}" font-size="30" font-weight="700">-${xml(fmtNum(b.penalty))}</text>`);
+    lines.push(`  <text x="760" y="${y}" fill="${PAPER}" font-family="${xml(mono)}" font-size="26">${xml(b.rule)}</text>`);
+  });
+  lines.push(`  <rect x="80" y="500" width="1040" height="2" fill="${MUTED}" opacity="0.4"/>`);
+  lines.push(`  <text x="80" y="562" fill="${PAPER}" font-family="${xml(mono)}" font-size="30">npx handfeel scan</text>`);
+  lines.push(`  <text x="1120" y="562" fill="${MUTED}" font-family="${xml(font)}" font-size="26" text-anchor="end">github.com/maximilianfeix/handfeel</text>`);
+  lines.push('</svg>');
+  return lines.join('\n') + '\n';
 }

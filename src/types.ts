@@ -64,8 +64,11 @@ export interface ScanResult {
   root: string;
   platforms: Platform[];
   filesScanned: number;
-  score: number;
-  grade: string;
+  /** null when no mobile app source was found (see `reason`) */
+  score: number | null;
+  grade: string | null;
+  /** why there is no score */
+  reason?: string;
   breakdown: RuleScore[];
   findings: Finding[];
   skipped: { file: string; reason: string }[];

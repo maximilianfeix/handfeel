@@ -9,12 +9,15 @@ const ALL = ['react-native', 'flutter', 'swiftui', 'compose'] as const;
 // ---------------------------------------------------------------- emoji
 
 const PICTO = /\p{Extended_Pictographic}/u;
+let segmenter: Intl.Segmenter | undefined;
 function isEmojiOnly(raw: string): boolean {
   const s = raw.trim();
   if (!s || s.length > 16) return false;
   // U+FE0E asks for the text glyph (⚠︎), a typographic symbol rather than a color emoji
   if (s.includes('\uFE0E')) return false;
-  const seg = new Intl.Segmenter('en', { granularity: 'grapheme' });
+  // every grapheme must be pictographic, so a string without one cannot qualify (cheap pre-check)
+  if (!PICTO.test(s)) return false;
+  const seg = (segmenter ??= new Intl.Segmenter('en', { granularity: 'grapheme' }));
   const parts = [...seg.segment(s)].map((x) => x.segment).filter((g) => g.trim());
   if (parts.length < 1 || parts.length > 3) return false;
   return parts.every((g) => {
@@ -127,6 +130,31 @@ function svgArtworkRanges(f: SourceFile): [number, number][] {
   return out;
 }
 
+/**
+ * Membership test for a set of [start, end) ranges: merged and binary-searched, so a large file
+ * with thousands of JSX attributes is not quadratic.
+ */
+function inAnyRange(ranges: [number, number][]): (o: number) => boolean {
+  const sorted = [...ranges].sort((x, y) => x[0] - y[0]);
+  const merged: [number, number][] = [];
+  for (const [a, b] of sorted) {
+    const last = merged[merged.length - 1];
+    if (last && a <= last[1]) last[1] = Math.max(last[1], b);
+    else merged.push([a, b]);
+  }
+  return (o) => {
+    let lo = 0;
+    let hi = merged.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (o < merged[mid][0]) hi = mid - 1;
+      else if (o >= merged[mid][1]) lo = mid + 1;
+      else return true;
+    }
+    return false;
+  };
+}
+
 const STYLE_KEY = /color$|^(?:fill|stroke|background|tint|border|shadow|outline)$/i;
 
 /**
@@ -144,7 +172,7 @@ function namedColorDefinitions(f: SourceFile): Set<number> {
       if (n.type === 'JSXAttribute') applied.push([n.start, n.end]);
       if (n.type === 'CallExpression' && n.callee?.type === 'MemberExpression' && n.callee.object?.name === 'StyleSheet') applied.push([n.start, n.end]);
     });
-    const inApplied = (o: number) => applied.some(([a, b]) => o >= a && o < b);
+    const inApplied = inAnyRange(applied);
     walk(f.ast.program, (n: any) => {
       if (n.type === 'ObjectProperty' && n.value?.type === 'StringLiteral') {
         const key = String(n.key?.name ?? n.key?.value ?? '');
@@ -175,14 +203,17 @@ export const hardcodedColor: Rule = {
   sources: [SRC.hig_color, SRC.m3_color_roles, SRC.swiftui_system_colors],
   file(f, report) {
     if (f.isTokenFile) return;
-    const art = svgArtworkRanges(f);
-    const named = namedColorDefinitions(f);
-    const skip = (o: number) => named.has(o) || inSchemeConditional(f, o) || art.some(([a, b]) => o >= a && o < b);
-    for (const h of colorLiterals(f)) {
+    const literals = colorLiterals(f);
+    const named = namedColorHits(f);
+    if (!literals.length && !named.length) return;
+    const inArt = inAnyRange(svgArtworkRanges(f));
+    const definitions = namedColorDefinitions(f);
+    const skip = (o: number) => definitions.has(o) || inSchemeConditional(f, o) || inArt(o);
+    for (const h of literals) {
       if (isScrim(h.rgb) || skip(h.offset)) continue;
       report(h.offset, `${h.raw.length > 30 ? hex6(h.rgb) : h.raw} is a literal color; use a theme role instead.`);
     }
-    for (const h of namedColorHits(f)) {
+    for (const h of named) {
       if (skip(h.offset)) continue;
       report(h.offset, `${h.raw} is a fixed palette color; use a theme role instead.`);
     }
@@ -249,7 +280,19 @@ function literalColorsIn(span: string, lang: SourceFile['lang']): RGB[] {
   return out;
 }
 
+/** purple-gradient and gradient-overuse both need the gradients of a file; find them once per scan. */
+const gradientCache = new WeakMap<SourceFile, Gradient[]>();
+
 export function gradients(f: SourceFile, p: Project): Gradient[] {
+  let hit = gradientCache.get(f);
+  if (!hit) {
+    hit = findGradients(f, p);
+    gradientCache.set(f, hit);
+  }
+  return hit;
+}
+
+function findGradients(f: SourceFile, p: Project): Gradient[] {
   const out: Gradient[] = [];
   if (f.lang === 'js') {
     if (!f.ast) return out;
