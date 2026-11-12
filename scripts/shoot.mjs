@@ -20,7 +20,7 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 for (const r of routes.length ? routes : ['/']) {
   await page.goto(base + r, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(+(flags.wait ?? 1500));
   const name = (r === '/' ? 'home' : r.replace(/^\//, '').replace(/\//g, '-')) + (flags.dark ? '-dark' : '');
   await page.screenshot({ path: `${out}/${name}.png` });
   console.log(`${out}/${name}.png`);

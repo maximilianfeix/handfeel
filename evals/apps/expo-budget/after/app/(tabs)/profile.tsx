@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '../../src/components/Card';
 import { useStore } from '../../src/store';
-import { colors, font, space } from '../../src/theme';
+import { makeStyles, space, useTheme } from '../../src/theme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 export default function Profile() {
   const insets = useSafeAreaInsets();
   const { transactions } = useStore();
+  const { c, text } = useTheme();
+  const styles = useStyles();
   const [notifications, setNotifications] = useState(true);
   const [faceId, setFaceId] = useState(false);
 
@@ -25,43 +26,45 @@ export default function Profile() {
       }}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={font.title}>Profile</Text>
+      <Text style={text.title} accessibilityRole="header">
+        Profile
+      </Text>
 
       <View style={styles.header}>
-        <LinearGradient colors={['#4F5BD5', '#B58CFF']} style={styles.avatar}>
-          <Text style={styles.initials}>AM</Text>
-        </LinearGradient>
-        <Text style={font.h2}>Alex Morgan</Text>
-        <Text style={font.caption}>alex@example.com</Text>
-        <Text style={[font.caption, { marginTop: 4 }]}>
-          {transactions.length} transactions tracked
-        </Text>
+        <View style={styles.avatar} accessible accessibilityLabel="Alex Morgan's avatar">
+          <Text style={[text.title, { color: c.accent }]}>AM</Text>
+        </View>
+        <Text style={text.headline}>Alex Morgan</Text>
+        <Text style={text.footnote}>alex@example.com</Text>
+        <Text style={[text.footnote, { marginTop: space.xs }]}>{transactions.length} transactions tracked</Text>
       </View>
 
-      <Card style={{ paddingVertical: 4 }}>
+      <Card style={{ paddingVertical: space.xs }}>
         <Row icon="notifications-outline" label="Budget alerts">
           <Switch
             value={notifications}
             onValueChange={setNotifications}
-            trackColor={{ true: colors.accent, false: colors.surfaceAlt }}
+            trackColor={{ true: c.accent, false: c.surfaceAlt }}
+            accessibilityLabel="Budget alerts"
           />
         </Row>
         <Row icon="finger-print-outline" label="Face ID lock" divider>
           <Switch
             value={faceId}
             onValueChange={setFaceId}
-            trackColor={{ true: colors.accent, false: colors.surfaceAlt }}
+            trackColor={{ true: c.accent, false: c.surfaceAlt }}
+            accessibilityLabel="Face ID lock"
           />
         </Row>
         <Row icon="cash-outline" label="Currency" divider>
-          <Text style={font.caption}>USD</Text>
+          <Text style={text.footnote}>USD</Text>
         </Row>
         <Row icon="download-outline" label="Export data" divider>
-          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
         </Row>
       </Card>
 
-      <Text style={[font.caption, { textAlign: 'center' }]}>Ledger 1.0.0</Text>
+      <Text style={[text.footnote, { textAlign: 'center' }]}>Ledger 1.0.0</Text>
     </ScrollView>
   );
 }
@@ -77,19 +80,28 @@ function Row({
   divider?: boolean;
   children: React.ReactNode;
 }) {
+  const { c, text } = useTheme();
+  const styles = useStyles();
   return (
     <View style={[styles.row, divider && styles.divider]}>
-      <Ionicons name={icon} size={20} color={colors.accent} />
-      <Text style={[font.body, { flex: 1 }]}>{label}</Text>
+      <Ionicons name={icon} size={20} color={c.textMuted} />
+      <Text style={[text.body, { flex: 1 }]}>{label}</Text>
       {children}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  header: { alignItems: 'center', gap: 4 },
-  avatar: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', marginBottom: space.sm },
-  initials: { color: '#fff', fontSize: 30, fontWeight: '700' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 14 },
-  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-});
+const useStyles = makeStyles(({ c }) => ({
+  header: { alignItems: 'center', gap: space.xs },
+  avatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: c.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: space.sm,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 48, paddingVertical: space.sm },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
+}));

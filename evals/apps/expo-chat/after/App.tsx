@@ -4,7 +4,8 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AppProvider, useApp } from './src/state/AppContext';
 import { Tab } from './src/types';
-import { Brand, EmptyState } from './src/components/ui';
+import { Brand, EmptyState, pressedOpacity } from './src/components/ui';
+import { space, type } from './src/theme';
 import { TabBar } from './src/components/TabBar';
 import { ConversationsScreen } from './src/screens/ConversationsScreen';
 import { ChatScreen } from './src/screens/ChatScreen';
@@ -12,7 +13,7 @@ import { ContactsScreen } from './src/screens/ContactsScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 
 function GatherApp() {
-  const { colors, preferences, openConversation, hydrated } = useApp();
+  const { colors, scheme, openConversation, hydrated } = useApp();
   const { width } = useWindowDimensions();
   const wide = width >= 900;
   const [tab, setTab] = useState<Tab>('messages');
@@ -35,10 +36,10 @@ function GatherApp() {
   const inbox = <ConversationsScreen onOpen={open} onCompose={compose} selectedId={wide ? selectedId : null} />;
   const contacts = <ContactsScreen onOpen={open} composing={composing} />;
 
-  if (!hydrated) return <View style={[styles.loading, { backgroundColor: colors.background }]}><Brand /><ActivityIndicator color={colors.greenText} style={{ marginTop: 24 }} /><Text style={{ color: colors.secondary, marginTop: 12, fontSize: 12 }}>Making room for your people…</Text></View>;
+  if (!hydrated) return <View style={[styles.loading, { backgroundColor: colors.background }]}><Brand /><ActivityIndicator color={colors.greenText} style={{ marginTop: space.xl }} /><Text style={[type.footnote, { color: colors.secondary, marginTop: space.sm }]}>Making room for your people…</Text></View>;
 
   return <SafeAreaView style={[styles.safe, { backgroundColor: wide ? colors.soft : colors.surface }]}>
-    <StatusBar style={preferences.darkMode ? 'light' : 'dark'} />
+    <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
     <View style={[styles.frame, wide && styles.wideFrame, { backgroundColor: colors.surface, borderColor: colors.line }]}>
       {wide ? <>
         <View style={[styles.sidebar, { borderRightColor: colors.line }]}>{tab === 'contacts' ? contacts : inbox}<TabBar active={tab} onChange={changeTab} /></View>
@@ -64,7 +65,7 @@ function WelcomePanel({ onOpen }: { onOpen: () => void }) {
 
 function WelcomeButton({ onPress }: { onPress: () => void }) {
   const { colors } = useApp();
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.welcomeButton, { backgroundColor: colors.green, opacity: pressed ? 0.7 : 1 }]}><Text style={{ color: colors.onGreen, fontSize: 13, fontWeight: '600' }}>Say hello to Maya</Text></Pressable>;
+  return <Pressable accessibilityRole="button" onPress={onPress} android_ripple={{ color: colors.ripple }} style={({ pressed }) => [styles.welcomeButton, { backgroundColor: colors.green, opacity: pressedOpacity(pressed, 0.8) }]}><Text style={[type.headline, { color: colors.onGreen }]}>Say hello to Maya</Text></Pressable>;
 }
 
 export default function App() {
@@ -74,14 +75,14 @@ export default function App() {
 const styles = StyleSheet.create({
   safe: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   frame: { width: '100%', flex: 1, overflow: 'hidden' },
-  wideFrame: { maxWidth: 1200, flexDirection: 'row', borderWidth: 1, borderRadius: 24, marginVertical: 24, width: '94%' },
+  wideFrame: { maxWidth: 1200, flexDirection: 'row', borderWidth: 1, borderRadius: 24, marginVertical: space.xl, width: '94%' },
   sidebar: { width: 390, borderRightWidth: 1 },
   detail: { flex: 1, minWidth: 0 },
   mobile: { flex: 1 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  welcome: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  welcomeMark: { padding: 25, borderRadius: 30, marginBottom: 32 },
-  welcomeTitle: { textAlign: 'center', fontSize: 48, fontWeight: '600', lineHeight: 54, letterSpacing: -1.6 },
-  welcomeButton: { borderRadius: 13, paddingHorizontal: 22, paddingVertical: 16 },
-  welcomeNote: { marginTop: 30, fontSize: 11 },
+  welcome: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.xxxl },
+  welcomeMark: { padding: space.xl, borderRadius: 28, marginBottom: space.xxl },
+  welcomeTitle: { ...type.largeTitle, textAlign: 'center', letterSpacing: -1 },
+  welcomeButton: { borderRadius: 12, paddingHorizontal: space.xl, paddingVertical: space.md, minHeight: 52, justifyContent: 'center', overflow: 'hidden' },
+  welcomeNote: { ...type.footnote, marginTop: space.xxl },
 });

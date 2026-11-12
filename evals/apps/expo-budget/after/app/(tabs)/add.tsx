@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -16,13 +7,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '../../src/components/Card';
 import { categories, expenseCategories } from '../../src/data';
 import { useStore } from '../../src/store';
-import { colors, font, radius, space } from '../../src/theme';
+import { makeStyles, radius, space, touch, useTheme } from '../../src/theme';
 import type { CategoryId } from '../../src/types';
 
 export default function AddTransaction() {
   const { addTransaction } = useStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { c, text } = useTheme();
+  const styles = useStyles();
   const [isIncome, setIsIncome] = useState(false);
   const [amount, setAmount] = useState('');
   const [title, setTitle] = useState('');
@@ -45,7 +38,7 @@ export default function AddTransaction() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
@@ -55,68 +48,89 @@ export default function AddTransaction() {
           gap: space.lg,
         }}
       >
-        <Text style={font.title}>New transaction</Text>
+        <Text style={text.title} accessibilityRole="header">
+          New transaction
+        </Text>
 
-        <View style={styles.segment}>
+        <View style={styles.segment} accessibilityRole="tablist">
           {(['Expense', 'Income'] as const).map((label) => {
             const active = (label === 'Income') === isIncome;
             return (
               <Pressable
                 key={label}
-                onPress={() => setIsIncome(label === 'Income')}
-                style={[styles.segItem, active && styles.segActive]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                onPress={() => {
+                  if (active) return;
+                  Haptics.selectionAsync();
+                  setIsIncome(label === 'Income');
+                }}
+                android_ripple={{ color: c.ripple, borderless: false }}
+                style={({ pressed }) => [
+                  styles.segItem,
+                  active && styles.segActive,
+                  pressed && !active && Platform.OS === 'ios' && styles.segPressed,
+                ]}
               >
-                <Text style={[font.body, { color: active ? colors.text : colors.textMuted }]}>
-                  {label}
-                </Text>
+                <Text style={[text.subhead, { color: active ? c.text : c.textMuted }]}>{label}</Text>
               </Pressable>
             );
           })}
         </View>
 
         <View style={styles.amountWrap}>
-          <Text style={styles.currency}>$</Text>
+          <Text style={[text.largeTitle, { color: c.textMuted }]}>$</Text>
           <TextInput
             value={amount}
             onChangeText={setAmount}
             placeholder="0.00"
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={c.textMuted}
             keyboardType="decimal-pad"
-            style={styles.amount}
+            accessibilityLabel="Amount"
+            style={[text.display, styles.amount]}
           />
         </View>
 
         <Card>
-          <Text style={font.caption}>DESCRIPTION</Text>
+          <Text style={text.caption}>DESCRIPTION</Text>
           <TextInput
             value={title}
             onChangeText={setTitle}
             placeholder="What was it for?"
-            placeholderTextColor={colors.textMuted}
-            style={styles.input}
+            placeholderTextColor={c.textMuted}
+            accessibilityLabel="Description"
+            style={[text.body, styles.input]}
           />
         </Card>
 
         {!isIncome && (
           <View style={{ gap: space.sm }}>
-            <Text style={font.h2}>Category</Text>
+            <Text style={text.headline} accessibilityRole="header">
+              Category
+            </Text>
             <View style={styles.chips}>
-              {expenseCategories.map((c) => {
-                const active = c.id === category;
+              {expenseCategories.map((cat) => {
+                const active = cat.id === category;
+                const tint = c.category[cat.id];
                 return (
                   <Pressable
-                    key={c.id}
+                    key={cat.id}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: active }}
                     onPress={() => {
+                      if (active) return;
                       Haptics.selectionAsync();
-                      setCategory(c.id);
+                      setCategory(cat.id);
                     }}
-                    style={[
+                    android_ripple={{ color: c.ripple }}
+                    style={({ pressed }) => [
                       styles.chip,
-                      active && { backgroundColor: c.color + '26', borderColor: c.color },
+                      pressed && Platform.OS === 'ios' && styles.chipPressed,
+                      active && { backgroundColor: tint + '26', borderColor: tint },
                     ]}
                   >
-                    <Ionicons name={categories[c.id].icon} size={16} color={c.color} />
-                    <Text style={[font.body, { fontSize: 14 }]}>{c.label}</Text>
+                    <Ionicons name={categories[cat.id].icon} size={16} color={tint} />
+                    <Text style={text.subhead}>{cat.label}</Text>
                   </Pressable>
                 );
               })}
@@ -127,38 +141,59 @@ export default function AddTransaction() {
         <Pressable
           onPress={save}
           disabled={!valid}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !valid }}
+          android_ripple={{ color: c.ripple }}
           style={({ pressed }) => [
             styles.save,
-            { opacity: !valid ? 0.4 : pressed ? 0.85 : 1 },
+            { opacity: !valid ? 0.4 : pressed && Platform.OS === 'ios' ? 0.8 : 1 },
           ]}
         >
-          <Text style={styles.saveText}>Save transaction</Text>
+          <Text style={[text.headline, { color: c.onAccent }]}>Save transaction</Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  segment: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.pill, padding: 4 },
-  segItem: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: radius.pill },
-  segActive: { backgroundColor: colors.surfaceAlt },
-  amountWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: space.md },
-  currency: { color: colors.textMuted, fontSize: 36, fontWeight: '600' },
-  amount: { color: colors.text, fontSize: 56, fontWeight: '700', letterSpacing: -1.5, minWidth: 120 },
-  input: { color: colors.text, fontSize: 17, fontWeight: '500', paddingTop: space.sm, paddingBottom: 2 },
+const useStyles = makeStyles(({ c }) => ({
+  segment: { flexDirection: 'row', backgroundColor: c.surface, borderRadius: radius.pill, padding: space.xs },
+  segItem: {
+    flex: 1,
+    minHeight: touch.min,
+    paddingVertical: space.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+  },
+  segActive: { backgroundColor: c.surfaceAlt },
+  segPressed: { backgroundColor: c.pressed },
+  amountWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.xs, paddingVertical: space.md },
+  amount: { minWidth: 120 },
+  input: { paddingTop: space.sm, paddingBottom: 2, minHeight: touch.min },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    gap: space.sm,
+    minHeight: touch.min,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
+    overflow: 'hidden',
   },
-  save: { backgroundColor: colors.accent, borderRadius: radius.md, paddingVertical: 16, alignItems: 'center' },
-  saveText: { color: '#0B0D12', fontSize: 16, fontWeight: '700' },
-});
+  chipPressed: { backgroundColor: c.pressed },
+  save: {
+    backgroundColor: c.accent,
+    borderRadius: radius.md,
+    minHeight: touch.min + 8,
+    paddingVertical: space.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+}));

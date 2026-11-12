@@ -19,139 +19,133 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final today = sampleWorkouts.first;
     final todayIndex = DateTime.now().weekday - 1;
     const goal = 60.0;
     const done = 42.0;
+    final sectionTitle = tt.titleLarge?.copyWith(fontWeight: FontWeight.w800);
 
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        children: [
-          Row(
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+          Space.lg + Space.xs, Space.lg, Space.lg + Space.xs, Space.xl),
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_greeting(),
+                      style:
+                          tt.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
+                  const SizedBox(height: 2),
+                  Text('Alex',
+                      style: tt.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w800, letterSpacing: -0.8)),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: Space.md, vertical: Space.sm),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainer,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.local_fire_department,
+                      color: cs.primary, size: 18),
+                  const SizedBox(width: Space.xs),
+                  Text('12 day streak',
+                      style: tt.labelLarge
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: Space.xl),
+        Container(
+          padding: const EdgeInsets.all(Space.xl),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainer,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Row(
             children: [
+              ProgressRing(
+                progress: done / goal,
+                size: 128,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('70%',
+                        style: tt.headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.w800)),
+                    Text('of goal',
+                        style: tt.bodySmall
+                            ?.copyWith(color: cs.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: Space.xl),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_greeting(),
-                        style: const TextStyle(
-                            color: AppColors.textDim, fontSize: 15)),
-                    const SizedBox(height: 2),
-                    const Text('Alex',
-                        style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.8)),
-                  ],
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.local_fire_department,
-                        color: AppColors.coral, size: 18),
-                    SizedBox(width: 4),
-                    Text('12 day streak',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 13)),
+                    Text("Today's progress",
+                        style: tt.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: Space.sm),
+                    Text(
+                        '42 of 60 active minutes.\nOne more session to close your ring.',
+                        style: tt.bodyMedium?.copyWith(
+                            color: cs.onSurfaceVariant, height: 1.4)),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
-            ),
-            child: Row(
-              children: [
-                ProgressRing(
-                  progress: done / goal,
-                  size: 130,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('70%',
-                          style: TextStyle(
-                              fontSize: 28, fontWeight: FontWeight.w800)),
-                      Text('of goal',
-                          style: TextStyle(
-                              fontSize: 12, color: AppColors.textDim)),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 22),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Today's progress",
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w800)),
-                      SizedBox(height: 8),
-                      Text('42 of 60 active minutes.\nOne more session to close your ring.',
-                          style: TextStyle(
-                              color: AppColors.textDim, height: 1.4)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+        ),
+        const SizedBox(height: Space.lg),
+        const Row(
+          children: [
+            Expanded(
+                child: StatChip(
+                    icon: Icons.bolt, value: '1,240', label: 'kcal burned')),
+            SizedBox(width: Space.md),
+            Expanded(
+                child: StatChip(
+                    icon: Icons.timer_outlined,
+                    value: '42 min',
+                    label: 'active')),
+            SizedBox(width: Space.md),
+            Expanded(
+                child: StatChip(
+                    icon: Icons.directions_walk,
+                    value: '8.4k',
+                    label: 'steps')),
+          ],
+        ),
+        const SizedBox(height: Space.xxl),
+        Text("Today's workout", style: sectionTitle),
+        const SizedBox(height: Space.md),
+        WorkoutCard(workout: today, large: true),
+        const SizedBox(height: Space.xxl),
+        Text('This week', style: sectionTitle),
+        const SizedBox(height: Space.md),
+        Container(
+          padding: const EdgeInsets.all(Space.lg + Space.xs),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainer,
+            borderRadius: BorderRadius.circular(24),
           ),
-          const SizedBox(height: 16),
-          const Row(
-            children: [
-              Expanded(
-                  child: StatChip(
-                      icon: Icons.bolt,
-                      value: '1,240',
-                      label: 'kcal burned')),
-              SizedBox(width: 12),
-              Expanded(
-                  child: StatChip(
-                      icon: Icons.timer_outlined,
-                      value: '42 min',
-                      label: 'active',
-                      color: AppColors.sky)),
-              SizedBox(width: 12),
-              Expanded(
-                  child: StatChip(
-                      icon: Icons.directions_walk,
-                      value: '8.4k',
-                      label: 'steps',
-                      color: AppColors.violet)),
-            ],
-          ),
-          const SizedBox(height: 28),
-          const Text("Today's workout",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 14),
-          WorkoutCard(workout: today, large: true),
-          const SizedBox(height: 28),
-          const Text('This week',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: WeeklyChart(todayIndex: todayIndex),
-          ),
-        ],
-      ),
+          child: WeeklyChart(todayIndex: todayIndex),
+        ),
+      ],
     );
   }
 }

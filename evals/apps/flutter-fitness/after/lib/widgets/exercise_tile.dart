@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models.dart';
 import '../theme.dart';
@@ -19,65 +20,79 @@ class ExerciseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onToggle,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: done ? AppColors.lime.withOpacity(0.10) : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: done
-                ? AppColors.lime.withOpacity(0.5)
-                : Colors.white.withOpacity(0.05),
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final radius = BorderRadius.circular(20);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Space.md),
+      child: Semantics(
+        checked: done,
+        child: Material(
+          color: done ? cs.primaryContainer : cs.surfaceContainer,
+          shape: RoundedRectangleBorder(
+            borderRadius: radius,
+            side: BorderSide(
+                color: done ? cs.primary.withOpacity(0.5) : cs.outlineVariant),
           ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceHigh,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(exercise.icon,
-                  color: done ? AppColors.lime : Colors.white70),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onToggle();
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(Space.lg),
+              child: Row(
                 children: [
-                  Text(
-                    exercise.name,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      decoration: done ? TextDecoration.lineThrough : null,
-                      color: done ? Colors.white54 : Colors.white,
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(Space.lg),
+                    ),
+                    child: Icon(exercise.icon,
+                        color: done ? cs.primary : cs.onSurfaceVariant),
+                  ),
+                  const SizedBox(width: Space.lg),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          exercise.name,
+                          style: tt.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            decoration:
+                                done ? TextDecoration.lineThrough : null,
+                            color: done ? cs.onSurfaceVariant : cs.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: Space.xs),
+                        Text(
+                          '${exercise.muscle}  ·  ${exercise.sets} x ${exercise.reps}',
+                          style: tt.bodyMedium
+                              ?.copyWith(color: cs.onSurfaceVariant),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${exercise.muscle}  ·  ${exercise.sets} x ${exercise.reps}',
-                    style: const TextStyle(
-                        fontSize: 13, color: AppColors.textDim),
+                  AnimatedSwitcher(
+                    duration: reduceMotion
+                        ? Duration.zero
+                        : const Duration(milliseconds: 200),
+                    child: done
+                        ? Icon(Icons.check_circle,
+                            key: const ValueKey('d'), color: cs.primary)
+                        : Icon(Icons.radio_button_unchecked,
+                            key: const ValueKey('u'), color: cs.outline),
                   ),
                 ],
               ),
             ),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: done
-                  ? const Icon(Icons.check_circle,
-                      key: ValueKey('d'), color: AppColors.lime)
-                  : const Icon(Icons.radio_button_unchecked,
-                      key: ValueKey('u'), color: Colors.white30),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -103,7 +103,9 @@ export function useTheme(): Theme {
 }
 
 /** Builds a StyleSheet once per scheme and returns a hook that picks the active one. */
-export function makeStyles<T extends StyleSheet.NamedStyles<T>>(fn: (t: Theme) => T): () => T {
+export function makeStyles<T extends StyleSheet.NamedStyles<T> | StyleSheet.NamedStyles<any>>(
+  fn: (t: Theme) => T & StyleSheet.NamedStyles<any>,
+): () => T {
   const sheets = {
     light: StyleSheet.create(fn(themes.light)),
     dark: StyleSheet.create(fn(themes.dark)),
