@@ -1,6 +1,6 @@
 import { walk, type SourceFile } from '../source.js';
 import { SRC } from './sources.js';
-import type { Rule } from './api.js';
+import { hasBottomNav, type Project, type Rule } from './api.js';
 
 const RN = ['react-native'] as const;
 const PRESSABLES = new Set(['Pressable', 'TouchableOpacity', 'TouchableHighlight', 'TouchableWithoutFeedback', 'TouchableNativeFeedback', 'TouchableBounce', 'RectButton', 'BaseButton']);
@@ -109,6 +109,7 @@ function children(el: any): any[] {
 
 export const rnTouchTarget: Rule = {
   id: 'touch-target-too-small',
+  perOccurrence: true,
   title: 'Touch targets under 44 pt',
   platforms: [...RN],
   weight: 2,
@@ -165,18 +166,22 @@ export const rnTouchTarget: Rule = {
 
 export const rnNoPressFeedback: Rule = {
   id: 'no-press-feedback',
+  perOccurrence: true,
   title: 'Taps without visual feedback',
   platforms: [...RN],
   weight: 2,
   cap: 10,
-  why: 'Pressable shows nothing when pressed unless you style the pressed state; TouchableWithoutFeedback never does. On a phone the finger covers the control, so a missing highlight makes taps feel dropped.',
+  why: 'Pressable shows nothing when pressed unless you style the pressed state; TouchableWithoutFeedback never does. On a phone the finger covers the control, so a missing highlight makes taps feel dropped. Empty Pressables that fill their parent (backdrops) and tap-to-dismiss-keyboard handlers are not counted.',
   fix: 'Use style={({ pressed }) => ...} or android_ripple on Pressable, or a component with built-in feedback. Pair important actions with haptics.',
   sources: [SRC.rn_pressable, SRC.m3_states, SRC.hig_buttons],
   file(f, report) {
     if (!f.ast) return;
     jsxElements(f, (el) => {
       const name = baseName(jsxName(el.openingElement.name));
-      if (name === 'TouchableWithoutFeedback' && attr(el, 'onPress')) {
+      // tapping outside a field to close the keyboard is not a button
+      const onPress = attr(el, 'onPress');
+      if (onPress && /Keyboard\.dismiss|\.blur\(\)/.test(f.code.slice(onPress.start, onPress.end))) return;
+      if (name === 'TouchableWithoutFeedback' && onPress) {
         report(el.start, 'TouchableWithoutFeedback gives no visual response to a tap.');
         return;
       }
@@ -186,6 +191,11 @@ export const rnNoPressFeedback: Rule = {
         return;
       }
       if (name !== 'Pressable' || !attr(el, 'onPress')) return;
+      // an empty Pressable that fills its parent is a backdrop (tap outside to close): there is nothing to highlight
+      const st = attr(el, 'style');
+      if (!children(el).length && st && /absoluteFill|inset_0|\bflex_1\b|flex:\s*1\b|position:\s*['"]absolute/.test(f.code.slice(st.start, st.end))) return;
+      // spread props usually carry the pressed state or handlers from a hook; unknown, so not flagged
+      if (el.openingElement.attributes.some((a: any) => a.type === 'JSXSpreadAttribute')) return;
       const style = attrExpr(attr(el, 'style'));
       const fnStyle = style && (style.type === 'ArrowFunctionExpression' || style.type === 'FunctionExpression');
       const fnChild = (el.children ?? []).some((c: any) => c.type === 'JSXExpressionContainer' && /Function/.test(c.expression?.type ?? ''));
@@ -199,6 +209,7 @@ export const rnNoPressFeedback: Rule = {
 
 export const rnIconButtonLabel: Rule = {
   id: 'icon-button-no-label',
+  perOccurrence: true,
   title: 'Icon-only buttons without a label',
   platforms: [...RN],
   weight: 1,
@@ -234,6 +245,7 @@ export const rnIconButtonLabel: Rule = {
 
 export const rnDeprecatedSafeArea: Rule = {
   id: 'rn-safe-area-view',
+  perOccurrence: true,
   title: "React Native's built-in SafeAreaView",
   platforms: [...RN],
   weight: 3,
@@ -259,12 +271,14 @@ export const rnFontScaling: Rule = {
   platforms: [...RN],
   weight: 4,
   cap: 12,
-  why: 'People who set a larger text size in system settings depend on apps following it. Turning scaling off pins every label to one size, which makes the app hard to read for exactly those people.',
+  why: 'People who set a larger text size in system settings depend on apps following it. Turning scaling off pins every label to one size, which makes the app hard to read for exactly those people. Icon components are not counted. Each finding costs points regardless of app size: one override in a shared Text component turns scaling off everywhere.',
   fix: 'Remove allowFontScaling={false}. If a layout breaks at large sizes, cap growth with maxFontSizeMultiplier (around 1.5-2) and let rows wrap.',
   sources: [SRC.rn_text_scaling, SRC.hig_typography],
   file(f, report) {
     if (!f.ast) return;
-    walk(f.ast.program, (n: any) => {
+    walk(f.ast.program, (n: any, parent: any) => {
+      // an icon font glyph is an icon, sized like the SVG icons next to it, not text
+      if (n.type === 'JSXAttribute' && parent?.type === 'JSXOpeningElement' && (ICON_NAME.test(baseName(jsxName(parent.name))) || /IconSet$|Glyph/.test(jsxName(parent.name)))) return;
       if (n.type === 'JSXAttribute' && n.name?.name === 'allowFontScaling') {
         const v = attrExpr(n);
         if (v?.type === 'BooleanLiteral' && v.value === false) report(n.start, 'allowFontScaling={false} ignores the user’s text size.');
@@ -284,6 +298,7 @@ export const rnFontScaling: Rule = {
 
 export const rnModal: Rule = {
   id: 'modal-instead-of-sheet',
+  perOccurrence: true,
   title: 'Custom modals instead of sheets',
   platforms: [...RN],
   weight: 2,
@@ -295,10 +310,13 @@ export const rnModal: Rule = {
     if (!f.ast) return;
     const rnImports = importsFrom(f, (s) => s === 'react-native').names;
     if (!rnImports.has('Modal')) return;
+    // presentationStyle is iOS-only; an Android-only file has no sheet style to pick
+    if (/\.android\.[jt]sx?$/.test(f.rel)) return;
     jsxElements(f, (el) => {
       if (jsxName(el.openingElement.name) !== 'Modal') return;
       const ps = attrExpr(attr(el, 'presentationStyle'));
-      if (ps?.type === 'StringLiteral' && /pageSheet|formSheet/.test(ps.value)) return;
+      // also `presentationStyle={isPad ? 'formSheet' : 'pageSheet'}`
+      if (ps && /pageSheet|formSheet/.test(f.code.slice(ps.start, ps.end))) return;
       report(el.start, 'Modal without a sheet presentation; consider a native sheet.');
     });
   },
@@ -306,18 +324,83 @@ export const rnModal: Rule = {
 
 // ---------------------------------------------------------------- keyboard
 
+const KEYBOARD_HANDLED = /KeyboardAvoidingView|KeyboardAware|KeyboardAvoidingScrollView|keyboard-controller|automaticallyAdjustKeyboardInsets|KeyboardStickyView|KeyboardToolbar|softwareKeyboardLayoutMode/;
+/** Components that move content out of the keyboard's way (not just a KeyboardProvider at the root). */
+const KEYBOARD_AVOIDS = /<(?:KeyboardAvoidingView|KeyboardAware\w*|KeyboardAvoidingScrollView|KeyboardStickyView)\b|automaticallyAdjustKeyboardInsets/;
+
+/** `Foo.tsx`, `Foo.ios.tsx` and `Foo/index.tsx` all define the component `Foo`. */
+function componentName(rel: string): string {
+  const parts = rel.split('/');
+  const base = parts[parts.length - 1].replace(/(\.(?:ios|android|native))?\.[cm]?[jt]sx?$/, '');
+  return base === 'index' ? parts[parts.length - 2] ?? base : base;
+}
+
+const keyboardCache = new WeakMap<Project, Set<string>>();
+
+/**
+ * Files whose TextInputs are covered by keyboard handling somewhere in the tree:
+ * the file handles it, renders a wrapper whose file avoids the keyboard (e.g. a ScreenWrapper
+ * with a KeyboardAvoidingView), or is rendered by a covered file. Matching is by component name.
+ */
+function keyboardCovered(p: Project): Set<string> {
+  const hit = keyboardCache.get(p);
+  if (hit) return hit;
+  const files = p.files.filter((f) => f.platform === 'react-native' && f.ast);
+  const renders = new Map<string, Set<string>>();
+  for (const f of files) {
+    const names = new Set<string>();
+    walk(f.ast!.program, (n: any) => {
+      if (n.type !== 'JSXOpeningElement') return;
+      let x = n.name;
+      while (x?.type === 'JSXMemberExpression') x = x.object;
+      if (x?.type === 'JSXIdentifier') names.add(x.name);
+    });
+    renders.set(f.rel, names);
+  }
+  // a wrapper avoids the keyboard itself, or passes its children into another wrapper (ScreenWrapper -> Container -> KeyboardAvoidingView)
+  const wrappers = new Set(files.filter((f) => KEYBOARD_AVOIDS.test(f.code)).map((f) => componentName(f.rel)));
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const f of files) {
+      const name = componentName(f.rel);
+      if (wrappers.has(name) || !/\bchildren\b/.test(f.code) || ![...renders.get(f.rel)!].some((n) => wrappers.has(n))) continue;
+      wrappers.add(name);
+      grew = true;
+    }
+  }
+  // seeds avoid the keyboard for everything they render; a bare keyboard-controller import (a KeyboardProvider at the root) only counts for its own file
+  const seeds = files.filter((f) => KEYBOARD_AVOIDS.test(f.code) || [...renders.get(f.rel)!].some((n) => wrappers.has(n))).map((f) => f.rel);
+  const covered = new Set([...seeds, ...files.filter((f) => KEYBOARD_HANDLED.test(f.code)).map((f) => f.rel)]);
+  const byName = new Map<string, string[]>();
+  for (const f of files) byName.set(componentName(f.rel), [...(byName.get(componentName(f.rel)) ?? []), f.rel]);
+  const queue = [...seeds];
+  while (queue.length) {
+    const rel = queue.pop()!;
+    for (const n of renders.get(rel) ?? []) {
+      for (const child of byName.get(n) ?? []) {
+        if (covered.has(child)) continue;
+        covered.add(child);
+        queue.push(child);
+      }
+    }
+  }
+  keyboardCache.set(p, covered);
+  return covered;
+}
+
 export const rnKeyboard: Rule = {
   id: 'keyboard-covers-input',
+  perOccurrence: true,
   title: 'Keyboard can cover text fields',
   platforms: [...RN],
   weight: 3,
   cap: 6,
-  why: 'Without keyboard handling the field the user is typing into slides under the keyboard, together with the submit button.',
+  why: 'Without keyboard handling the field the user is typing into slides under the keyboard, together with the submit button. A field counts as handled when its file avoids the keyboard, renders a wrapper component that does (such as a ScreenWrapper with a KeyboardAvoidingView), or is rendered, at any depth, by such a file.',
   fix: 'Wrap the form in KeyboardAvoidingView (behavior="padding" on iOS), use automaticallyAdjustKeyboardInsets on the ScrollView, or react-native-keyboard-controller.',
   sources: [SRC.rn_kav, SRC.expo_keyboard],
-  file(f, report) {
+  file(f, report, p) {
     if (!f.ast) return;
-    if (/KeyboardAvoidingView|KeyboardAware|KeyboardAvoidingScrollView|keyboard-controller|automaticallyAdjustKeyboardInsets|KeyboardStickyView|KeyboardToolbar|softwareKeyboardLayoutMode/.test(f.code)) return;
+    if (keyboardCovered(p).has(f.rel)) return;
     let first: any = null;
     jsxElements(f, (el) => {
       if (!first && baseName(jsxName(el.openingElement.name)) === 'TextInput') first = el;
@@ -334,13 +417,13 @@ export const rnDrawer: Rule = {
   platforms: [...RN],
   weight: 6,
   cap: 6,
-  why: 'A drawer hides destinations behind a tap and sits at the top of the screen, out of thumb reach. iOS uses a tab bar for top-level sections; Material 3 uses a navigation bar for three to five destinations.',
+  why: 'A drawer hides destinations behind a tap and sits at the top of the screen, out of thumb reach. iOS uses a tab bar for top-level sections; Material 3 uses a navigation bar for three to five destinations. A drawer in an app that also has a tab bar is not counted.',
   fix: 'Move top-level destinations into bottom tabs (Expo Router Tabs or NativeTabs). Keep a drawer only for large, rarely used sets of destinations or tablets.',
   sources: [SRC.hig_tabbars, SRC.m3_nav_bar, SRC.m3_nav_drawer],
-  file(f, report) {
+  file(f, report, p) {
     if (!f.ast) return;
     const imp = importsFrom(f, (s) => s === '@react-navigation/drawer' || s === 'expo-router/drawer');
-    if (imp.node) report(imp.node.start, 'Drawer navigation used for app sections.');
+    if (imp.node && !hasBottomNav(p, 'react-native')) report(imp.node.start, 'Drawer navigation used for app sections, and the app has no tab bar.');
   },
 };
 
@@ -348,6 +431,7 @@ export const rnDrawer: Rule = {
 
 export const rnIosOnlyShadow: Rule = {
   id: 'ios-only-shadow',
+  perOccurrence: true,
   title: 'Shadows that only exist on iOS',
   platforms: [...RN],
   weight: 1,

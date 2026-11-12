@@ -1,11 +1,12 @@
 import { callSpan } from '../lex.js';
 import { SRC } from './sources.js';
-import { matches, type Rule } from './api.js';
+import { hasBottomNav, matches, type Rule } from './api.js';
 
 const CO = ['compose'] as const;
 
 export const composeNoIndication: Rule = {
   id: 'no-press-feedback',
+  perOccurrence: true,
   title: 'Taps without visual feedback',
   platforms: [...CO],
   weight: 2,
@@ -21,6 +22,7 @@ export const composeNoIndication: Rule = {
 
 export const composeSmallTarget: Rule = {
   id: 'touch-target-too-small',
+  perOccurrence: true,
   title: 'Touch targets under 48 dp',
   platforms: [...CO],
   weight: 2,
@@ -47,6 +49,7 @@ export const composeSmallTarget: Rule = {
 
 export const composeIconLabel: Rule = {
   id: 'icon-button-no-label',
+  perOccurrence: true,
   title: 'Icon-only buttons without a label',
   platforms: [...CO],
   weight: 1,
@@ -66,6 +69,7 @@ export const composeIconLabel: Rule = {
 
 export const composeHardcodedType: Rule = {
   id: 'type-outside-scale',
+  perOccurrence: true,
   title: 'Text sizes outside the type scale',
   platforms: [...CO, 'flutter'],
   weight: 0.5,
@@ -86,11 +90,12 @@ export const composeDrawer: Rule = {
   platforms: [...CO],
   weight: 6,
   cap: 6,
-  why: 'Material 3 uses a NavigationBar for three to five destinations on phones; the modal drawer is deprecated in M3 Expressive in favour of an expanded navigation rail.',
+  why: 'Material 3 uses a NavigationBar for three to five destinations on phones; the modal drawer is deprecated in M3 Expressive in favour of an expanded navigation rail. A drawer in an app that also has a NavigationBar (adaptive navigation) is not counted.',
   fix: 'Use NavigationBar (or NavigationSuiteScaffold to adapt between bar, rail and drawer by window size).',
   sources: [SRC.m3_nav_bar, SRC.m3_nav_drawer],
-  file(f, report) {
-    for (const m of matches(/\bModalNavigationDrawer\s*\(/, f.masked)) report(m.index, 'ModalNavigationDrawer as navigation.');
+  file(f, report, p) {
+    if (hasBottomNav(p, 'compose')) return;
+    for (const m of matches(/\bModalNavigationDrawer\s*\(/, f.masked)) report(m.index, 'ModalNavigationDrawer as navigation, and the app has no NavigationBar.');
   },
 };
 

@@ -66,4 +66,4 @@ If the user did not say which, audit first, show the result, and ask before edit
 
 ## Scanner
 
-`npx handfeel scan .` prints a 0-100 score and every finding with `file:line`. Each rule has a fixed weight and cap (`npx handfeel rules`), so the score is deterministic and explainable. `npx handfeel explain <rule>` prints the reason and sources. Ignore a line with `// handfeel-ignore-next-line <rule>` when a finding is intentional, and say so in the report.
+`npx handfeel scan .` prints a 0-100 score and every finding with `file:line`. Each rule has a fixed weight and cap (`npx handfeel rules`), so the score is deterministic and explainable. In projects with more than 20 files, findings that occur per line of code (colors, Pressables, gradients) are counted per 20 files, because the weights were set on small generated apps. `npx handfeel explain <rule>` prints the reason and sources. Ignore a line with `// handfeel-ignore-next-line <rule>` when a finding is intentional, and say so in the report.

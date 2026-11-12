@@ -64,14 +64,19 @@ test('score formula: weight x (count - free), capped, floored at 0', () => {
   assert.equal(computeScore(f('gradient-overuse', 2), cat).score, 100);
   assert.equal(computeScore(f('gradient-overuse', 4), cat).score, 97);
   assert.equal(computeScore(f('hardcoded-color', 1), cat).score, 99);
+  // per-occurrence rules are counted per 20 files in larger projects; per-project rules are not
+  assert.equal(computeScore(f('hardcoded-color', 40), cat, 200).score, 98);
+  assert.equal(computeScore(f('hardcoded-color', 40), cat, 20).score, 90);
+  assert.equal(computeScore(f('font-scaling-disabled', 1), cat, 2000).score, 96);
+  assert.equal(computeScore(f('hardcoded-color', 40), cat, 200).breakdown[0].counted, 4);
   assert.equal(grade(95), 'feels native');
   assert.equal(grade(40), 'AI look');
 });
 
-test('implementations that share an id share weight, cap and free', () => {
+test('implementations that share an id share weight, cap, free and perOccurrence', () => {
   const by = new Map<string, string>();
   for (const r of RULES) {
-    const k = `${r.weight}/${r.cap}/${r.free ?? 0}`;
+    const k = `${r.weight}/${r.cap}/${r.free ?? 0}/${!!r.perOccurrence}`;
     const prev = by.get(r.id);
     if (prev) assert.equal(k, prev, `${r.id} has inconsistent scoring`);
     by.set(r.id, k);

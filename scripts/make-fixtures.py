@@ -226,6 +226,88 @@ add('missing-safe-area', 'compose',
     kt("class Main : ComponentActivity() { override fun onCreate(b: Bundle?) { super.onCreate(b); setContent { Scaffold(topBar = {}) { _ -> Text(\"x\") } } } }\n"),
     kt("class Main : ComponentActivity() { override fun onCreate(b: Bundle?) { super.onCreate(b); enableEdgeToEdge(); setContent { Scaffold { p -> Text(\"x\", Modifier.padding(p)) } } } }\n"))
 
+# ---------------------------------------------------------------- calibration on real apps (docs/real-apps.md)
+# Each pair reproduces a false positive seen in a well-made open-source app; bad/ keeps the case the rule is for.
+add('hardcoded-color', 'rn-web-and-fixtures',
+    rn("export {};\n", {"Banner.native.tsx": "import { View } from 'react-native';\nexport default () => <View style={{ backgroundColor: '#F4F4F8' }} />;\n"}),
+    rn("export {};\n", {"Banner.web.tsx": "import { View } from 'react-native';\nexport default () => <View style={{ backgroundColor: '#F4F4F8' }} />;\n",
+                        "src/__fixtures__/post.tsx": "import { View } from 'react-native';\nexport default () => <View style={{ backgroundColor: '#F4F4F8' }} />;\n"}))
+add('hardcoded-color', 'rn-scheme-scrim',
+    rn("import { View } from 'react-native';\nexport default () => <View style={{ backgroundColor: '#10161F' }} />;\n"),
+    rn("import { View, useColorScheme } from 'react-native';\nexport default () => {\n  const isDark = useColorScheme() === 'dark';\n  const bg = isDark\n    ? '#10161F'\n    : '#FFFFFF';\n  return <View style={{ backgroundColor: bg, borderColor: 'rgba(0, 0, 0, 0.5)', shadowColor: 'rgba(0,0,0,0)' }} />;\n};\n"))
+add('hardcoded-color', 'rn-named-palette',
+    rn("import { StyleSheet } from 'react-native';\nexport const s = StyleSheet.create({ box: { backgroundColor: '#F3F3F8' } });\n"),
+    rn("import { StyleSheet } from 'react-native';\nexport const colors = { gray1: '#F3F3F8', blue3: '#0085ff' };\nexport const s = StyleSheet.create({ box: { backgroundColor: colors.gray1 } });\n"))
+add('hardcoded-color', 'rn-svg-artwork',
+    rn("import { View } from 'react-native';\nexport default () => <View style={{ borderColor: '#0078D4' }} />;\n"),
+    rn("import Svg, { Path } from 'react-native-svg';\nexport default () => <Svg viewBox=\"0 0 24 24\"><Path d=\"M0 0h24v24H0z\" fill=\"#0078D4\" /></Svg>;\n"))
+add('hardcoded-color', 'swiftui-system-colors',
+    sw('struct V: View { var body: some View { Text("Hi").foregroundStyle(Color.white) } }\n'),
+    sw('struct V: View { var body: some View { Label("Boost", systemImage: "arrow.2.squarepath").foregroundStyle(Color.teal); Text("x").foregroundStyle(Color.red) } }\n'))
+add('hardcoded-color', 'flutter-enum-palette',
+    fl("Widget box() => Container(color: const Color(0xFF3B82F6));\n"),
+    fl("enum AvatarColor { blue, green }\nextension AvatarColorX on AvatarColor {\n  Color get color => switch (this) {\n    AvatarColor.blue => const Color(0xFF3B82F6),\n    AvatarColor.green => const Color(0xFF16A34A),\n  };\n}\nWidget scrim() => Container(color: Colors.black.withValues(alpha: 0.4));\n"))
+
+add('type-scale-sprawl', 'compose-theme-scale',
+    kt("@Composable fun T() { Text(\"a\", fontSize = 10.sp); Text(\"b\", fontSize = 11.sp); Text(\"c\", fontSize = 12.sp); Text(\"d\", fontSize = 13.sp); Text(\"e\", fontSize = 15.sp); Text(\"f\", fontSize = 17.sp); Text(\"g\", fontSize = 19.sp); Text(\"h\", fontSize = 21.sp); Text(\"i\", fontSize = 27.sp); Text(\"j\", fontSize = 41.sp) }\n"),
+    kt("@Composable fun T() { Text(\"a\", style = MaterialTheme.typography.bodyLarge) }\n",
+       {"app/src/main/java/app/ui/theme/Type.kt": "package app.ui.theme\nval Typography = Typography(\n" + "".join(f"  s{n} = TextStyle(fontSize = {n}.sp),\n" for n in (57, 45, 36, 32, 28, 24, 22, 16, 14, 12, 11)) + ")\n"}))
+
+add('hamburger-navigation', 'compose-adaptive',
+    kt("@Composable fun N() { ModalNavigationDrawer(drawerContent = {}) { } }\n"),
+    kt("@Composable fun N(compact: Boolean) { if (compact) NavigationBar { } else ModalNavigationDrawer(drawerContent = {}) { } }\n"))
+
+M = "import { Modal, View } from 'react-native';\n"
+add('modal-instead-of-sheet', 'rn-conditional-sheet',
+    rn(M + "export default () => <Modal transparent animationType=\"fade\"><View /></Modal>;\n"),
+    rn(M + "const IS_IPAD = false;\nexport default () => <Modal presentationStyle={IS_IPAD ? 'formSheet' : 'pageSheet'}><View /></Modal>;\n",
+       {"EmojiPopup.android.tsx": M + "export default () => <Modal animationType=\"slide\" transparent><View /></Modal>;\n"}))
+add('modal-instead-of-sheet', 'swiftui-immersive',
+    sw('struct V: View { @State var on = false\n var body: some View { Text("Hi").fullScreenCover(isPresented: $on) { Form { Text("Name") } } } }\n'),
+    sw('struct V: View { @State var isCameraPickerPresented = false\n var body: some View { Text("Hi").fullScreenCover(isPresented: $isCameraPickerPresented) { CameraPicker() } } }\n'))
+
+add('emoji-as-icon', 'rn-text-symbols',
+    rn("import { Text } from 'react-native';\nexport default () => <Text>⚠️</Text>;\n"),
+    rn("import { Text } from 'react-native';\nexport const escape = (tag: string) => tag.replaceAll('\\\\:', '☢');\nexport default () => <Text>⚠︎</Text>;\n"))
+
+add('touch-target-too-small', 'flutter-nested-child',
+    fl("Widget box(bool v) => InkResponse(onTap: () {}, child: DecoratedBox(decoration: const BoxDecoration(), child: Material(child: SizedBox(width: 24, height: 24))));\n"),
+    fl("Widget banner() => InkWell(onTap: () {}, child: Column(children: const [SizedBox(width: 32, height: 32), Text('Uploading')]));\n"
+       "Widget play() => IconButton(tooltip: 'Play', iconSize: 32, padding: const EdgeInsets.all(12), constraints: const BoxConstraints(), onPressed: () {}, icon: const Icon(Icons.play_arrow));\n"))
+
+add('glassmorphism', 'flutter-bars-and-feedback',
+    fl("Widget card() => BackdropFilter(filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), child: const Text('x'));\nWidget c2() => BackdropFilter(filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4), child: const Text('y'));\n"),
+    fl("Widget tile() => InkWell(overlayColor: WidgetStateProperty.all(Colors.white.withValues(alpha: 0.1)), onTap: () {});\n",
+       {"lib/widgets/sliver_app_bar.dart": "import 'package:flutter/material.dart';\nWidget bar() => BackdropFilter(filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2), child: const SizedBox());\n"}))
+
+add('no-press-feedback', 'rn-backdrop-and-keyboard',
+    rn(P + "export default () => <Pressable onPress={() => {}}><Text>Leave chat</Text></Pressable>;\n"),
+    rn("import { Pressable, StyleSheet, TouchableWithoutFeedback, Keyboard, View } from 'react-native';\nexport default ({ close }: { close: () => void }) => <><Pressable style={StyleSheet.absoluteFill} accessibilityLabel=\"Close\" onPress={close} /><TouchableWithoutFeedback onPress={Keyboard.dismiss}><View /></TouchableWithoutFeedback></>;\n"))
+add('no-press-feedback', 'flutter-unfocus',
+    fl("Widget b() => GestureDetector(onTap: () => open(), child: const Text('Open'));\n"),
+    fl("Widget b(BuildContext c) => GestureDetector(onTap: FocusManager.instance.primaryFocus?.unfocus, child: const Text('x'));\n"))
+
+add('missing-safe-area', 'flutter-custom-body',
+    fl("Widget s() => Scaffold(body: Stack(children: const [Text('Map')]));\n"),
+    fl("Widget s() => const Scaffold(body: ChangePasswordForm());\nWidget t(Widget child) => Scaffold(body: child, bottomNavigationBar: NavigationBar(destinations: const []));\n"))
+
+add('keyboard-covers-input', 'rn-wrapper',
+    rn("export {};\n", {"src/NameField.tsx": "import { TextInput } from 'react-native';\nexport default () => <TextInput placeholder=\"Name\" />;\n",
+                        "src/ProfileScreen.tsx": "import { View } from 'react-native';\nimport NameField from './NameField';\nexport default () => <View><NameField /></View>;\n"}),
+    rn("export {};\n", {"src/NameField.tsx": "import { TextInput } from 'react-native';\nexport default () => <TextInput placeholder=\"Name\" />;\n",
+                        "src/ScreenWrapper/index.tsx": "import { KeyboardAvoidingView } from 'react-native';\nexport default ({ children }: { children: React.ReactNode }) => <KeyboardAvoidingView behavior=\"padding\">{children}</KeyboardAvoidingView>;\n",
+                        "src/ProfileScreen.tsx": "import ScreenWrapper from './ScreenWrapper';\nimport NameField from './NameField';\nexport default () => <ScreenWrapper><NameField /></ScreenWrapper>;\n"}))
+
+add('gradient-overuse', 'rn-scrim-and-svg',
+    rn(lg + "export default () => <><LinearGradient colors={['#FF8A00', '#E52E71']} /><LinearGradient colors={['#FF8A00', '#E52E71']} /><LinearGradient colors={['#FF8A00', '#E52E71']} /></>;\n"),
+    rn(lg + "import Svg, { Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';\n"
+       "export default () => <><LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']} /><LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']} /><LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']} />"
+       "<Svg><Defs><SvgGradient id=\"a\"><Stop offset=\"0\" stopColor=\"#FF8A00\" /></SvgGradient><SvgGradient id=\"b\" /><SvgGradient id=\"c\" /></Defs></Svg></>;\n"))
+
+add('font-scaling-disabled', 'rn-icon-glyph',
+    rn("import { Text } from 'react-native';\nexport default () => <Text maxFontSizeMultiplier={1}>3</Text>;\n"),
+    rn("import { GlyphIcon } from './glyphs';\nexport default () => <GlyphIcon name=\"bell\" allowFontScaling={false} />;\n"))
+
 if __name__ == '__main__':
     if os.path.isdir(ROOT):
         shutil.rmtree(ROOT)

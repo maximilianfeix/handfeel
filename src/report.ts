@@ -1,5 +1,6 @@
 import { PLATFORM_LABEL, type ScanResult } from './types.js';
 import { ruleCatalog } from './rules/index.js';
+import { REFERENCE_FILES } from './score.js';
 
 export interface Style {
   bold(s: string): string;
@@ -36,9 +37,14 @@ export function renderText(r: ScanResult, st: Style, opts: { summary?: boolean; 
     out.push(`  ${st.dim('where the points went')}`);
     const idW = Math.max(...r.breakdown.map((b) => b.rule.length));
     for (const b of r.breakdown) {
-      const math = b.free ? `${b.count} found, ${b.free} free` : `${b.count} found`;
-      const capped = b.weight * Math.max(0, b.count - b.free) > b.cap ? st.dim(` (capped at ${b.cap})`) : '';
+      const scaled = b.counted !== b.count ? `, counts as ${b.counted < 0.1 ? '<0.1' : fmtNum(b.counted)}` : '';
+      const math = `${b.count} found${scaled}${b.free ? `, ${b.free} free` : ''}`;
+      const capped = b.weight * Math.max(0, b.counted - b.free) > b.cap ? st.dim(` (capped at ${b.cap})`) : '';
       out.push(`  ${padL(b.penalty ? '-' + fmtNum(b.penalty) : '0', 5)}  ${pad(b.rule, idW)}  ${st.dim(math)}${capped}`);
+    }
+    if (r.breakdown.some((b) => b.counted !== b.count)) {
+      out.push(st.dim(`  ${r.filesScanned} files: per-occurrence findings are counted per ${REFERENCE_FILES} files (x ${REFERENCE_FILES}/${r.filesScanned}).`));
+      out.push(st.dim(`  The weights were set on generated apps of 4-15 files; a larger app has more of everything.`));
     }
     out.push('');
   }
@@ -113,7 +119,7 @@ export function renderMarkdown(r: ScanResult): string {
   if (r.breakdown.length) {
     out.push('| Rule | Found | Points |');
     out.push('|---|---:|---:|');
-    for (const b of r.breakdown) out.push(`| \`${b.rule}\` | ${b.count} | -${fmtNum(b.penalty)} |`);
+    for (const b of r.breakdown) out.push(`| \`${b.rule}\` | ${b.count}${b.counted !== b.count ? ` (counts as ${b.counted < 0.1 ? "<0.1" : fmtNum(b.counted)})` : ''} | -${fmtNum(b.penalty)} |`);
     out.push('');
   }
   return out.join('\n');

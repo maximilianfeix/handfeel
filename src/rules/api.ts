@@ -119,4 +119,18 @@ export function numbersIn(s: string): { value: number; index: number }[] {
   return out;
 }
 
+/**
+ * The project also has a bottom navigation bar / tab bar. A drawer next to one is the
+ * adaptive pattern (bar on phones, rail or drawer on larger windows), not drawer-only navigation.
+ */
+export function hasBottomNav(p: Project, platform: Platform): boolean {
+  const re =
+    platform === 'react-native'
+      ? /bottom-tabs|createBottomTabNavigator|NativeTabs|native-tabs|<Tabs[\s>]/
+      : platform === 'flutter'
+        ? /\b(?:NavigationBar|BottomNavigationBar|CupertinoTabBar|CupertinoTabScaffold)\s*\(/
+        : /\b(?:NavigationBar|BottomNavigation|NavigationSuiteScaffold|NavigationSuiteScaffoldLayout)\s*[({]/;
+  return p.files.some((f) => f.platform === platform && re.test(f.code));
+}
+
 export const onGrid = (v: number) => v <= 2 || v % 4 === 0;

@@ -28,6 +28,8 @@ export interface SourceFile {
   lines: LineIndex;
   /** Defines design tokens (theme/colors/palette). Hard-coded values are expected here. */
   isTokenFile: boolean;
+  /** Draws UI: JSX or StyleSheet.create, a Flutter widget, a @Composable, a SwiftUI View. */
+  rendersUi: boolean;
   ast?: BabelFile;
   ignore: IgnoreMap;
 }
@@ -131,6 +133,25 @@ function loadJs(rel: string, text: string): Pick<SourceFile, 'code' | 'masked' |
   return { code: code.join(''), masked: masked.join(''), strings, ast };
 }
 
+/**
+ * Does this file draw UI? Typography constants in a module that draws nothing (an atoms or
+ * variables file) define the type scale, like a token file does.
+ */
+export function rendersUi(lang: FileLang, code: string, ast?: BabelFile): boolean {
+  if (lang === 'js') {
+    if (/\bStyleSheet\.create\s*\(/.test(code)) return true;
+    let jsx = false;
+    if (ast)
+      walk(ast.program, (n) => {
+        if (n.type === 'JSXElement' || n.type === 'JSXFragment') jsx = true;
+      });
+    return jsx;
+  }
+  if (lang === 'dart') return /\bWidget\s+build\s*\(|\bextends\s+(?:StatelessWidget|StatefulWidget|State\s*<|ConsumerWidget|HookWidget|HookConsumerWidget|ConsumerStatefulWidget)\b|\bWidget\s+\w+\s*\(/.test(code);
+  if (lang === 'kotlin') return /@Composable\b/.test(code);
+  return /:\s*(?:some\s+)?View\b|\bsome\s+View\b|\bViewModifier\b|\bButtonStyle\b/.test(code);
+}
+
 export function loadSource(rel: string, abs: string, text: string, platform: Platform): SourceFile {
   const lang: FileLang = /\.dart$/.test(rel) ? 'dart' : /\.swift$/.test(rel) ? 'swift' : /\.kts?$/.test(rel) ? 'kotlin' : 'js';
   const base = {
@@ -143,10 +164,16 @@ export function loadSource(rel: string, abs: string, text: string, platform: Pla
     isTokenFile: isTokenPath(rel),
     ignore: parseIgnores(text),
   };
-  if (lang === 'js') return { ...base, ...loadJs(rel, text) };
+  if (lang === 'js') {
+    const js = loadJs(rel, text);
+    const ui = rendersUi(lang, js.code, js.ast);
+    return { ...base, ...js, rendersUi: ui };
+  }
   const lx = lex(text, lang);
+  const ui = rendersUi(lang, lx.code);
   return {
     ...base,
+    rendersUi: ui,
     code: lx.code,
     masked: lx.masked,
     strings: lx.strings.map((s) => ({ value: s.value, start: s.start, end: s.end })),
