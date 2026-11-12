@@ -33,6 +33,13 @@ export interface RuleMeta {
   cap: number;
   /** Findings tolerated before deductions start. */
   free?: number;
+  /**
+   * One finding per occurrence in the code (a literal, a Pressable, a gradient), so the count
+   * grows with the size of the codebase. In projects with more than REFERENCE_FILES files the
+   * count is scaled down to that size before scoring. Rules without it are judged once per
+   * project (missing haptics, distinct font sizes) or matter wherever they occur.
+   */
+  perOccurrence?: boolean;
   /** Why it matters to the person holding the phone. */
   why: string;
   /** Short hint on how to fix it. */
@@ -44,6 +51,8 @@ export interface RuleScore {
   rule: string;
   title: string;
   count: number;
+  /** count after scaling to REFERENCE_FILES files (equals count for small projects and per-project rules) */
+  counted: number;
   penalty: number;
   weight: number;
   cap: number;

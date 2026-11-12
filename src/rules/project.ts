@@ -99,6 +99,7 @@ export const noPlatformAdaptation: Rule = {
 
 export const noEdgeToEdge: Rule = {
   id: 'missing-safe-area',
+  perOccurrence: true,
   title: 'Edge-to-edge not handled',
   platforms: ['compose'],
   weight: 3,

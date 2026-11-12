@@ -6,8 +6,11 @@ const SKIP_DIRS = new Set([
   'node_modules', '.git', '.hg', '.svn', 'build', 'dist', 'out', '.expo', '.expo-shared', '.dart_tool', '.pub-cache',
   'Pods', 'DerivedData', '.gradle', '.idea', '.vscode', '.next', 'coverage', 'vendor', '.build', '.swiftpm',
   '__tests__', '__mocks__', 'test', 'tests', 'androidTest', 'Tests', 'UITests', 'integration_test', '.turbo', '.cache',
-  'Carthage', 'generated', '.fvm',
+  'Carthage', 'generated', '.fvm', '__fixtures__', '__generated__',
 ]);
+
+/** React Native resolves `.web.*` files only for web builds; they never run on a phone. */
+const RN_WEB_FILE = /\.web\.[cm]?[jt]sx?$/;
 
 const SKIP_FILE = /(\.test|\.spec|\.stories|\.d|\.g|\.freezed|\.gr|\.config)\.[a-z]+$|^(babel|metro|jest|eslint|prettier|tailwind|postcss|webpack|vite|app)\.config\./i;
 const MAX_BYTES = 1_000_000;
@@ -121,6 +124,7 @@ export function collect(root: string, ignore: RegExp[] = []): { candidates: Cand
     } else if (/\.kt$/.test(f.rel)) {
       kotlin.push(f);
     } else {
+      if (RN_WEB_FILE.test(f.rel)) continue;
       if (rnDirs.some((d) => inDir(f.rel, d))) {
         candidates.push({ ...f, platform: 'react-native' });
       } else {

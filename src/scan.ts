@@ -72,6 +72,6 @@ export function scan(dir: string, opts: ScanOptions = {}): ScanResult {
   });
   unique.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.column - b.column || a.rule.localeCompare(b.rule));
 
-  const { score, breakdown } = computeScore(unique, ruleCatalog());
+  const { score, breakdown } = computeScore(unique, ruleCatalog(), files.length);
   return { version: VERSION, root, platforms, filesScanned: files.length, score, grade: grade(score), breakdown, findings: unique, skipped };
 }

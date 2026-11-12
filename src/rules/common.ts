@@ -12,6 +12,8 @@ const PICTO = /\p{Extended_Pictographic}/u;
 function isEmojiOnly(raw: string): boolean {
   const s = raw.trim();
   if (!s || s.length > 16) return false;
+  // U+FE0E asks for the text glyph (⚠︎), a typographic symbol rather than a color emoji
+  if (s.includes('\uFE0E')) return false;
   const seg = new Intl.Segmenter('en', { granularity: 'grapheme' });
   const parts = [...seg.segment(s)].map((x) => x.segment).filter((g) => g.trim());
   if (parts.length < 1 || parts.length > 3) return false;
@@ -21,8 +23,16 @@ function isEmojiOnly(raw: string): boolean {
   });
 }
 
+/** The emoji is a placeholder in string processing (`.replaceAll('☢', ...)`), not something shown. */
+function isEmojiData(f: SourceFile, offset: number): boolean {
+  const lineStart = f.code.lastIndexOf('\n', offset - 1) + 1;
+  const before = f.code.slice(lineStart, offset);
+  return /\.(?:replace|replaceAll|split|includes|indexOf|startsWith|endsWith|contains|join)\(\s*(?:[^,()]*,\s*)?$/.test(before);
+}
+
 export const emojiAsIcon: Rule = {
   id: 'emoji-as-icon',
+  perOccurrence: true,
   title: 'Emoji used as icons',
   platforms: [...ALL],
   weight: 2,
@@ -31,7 +41,7 @@ export const emojiAsIcon: Rule = {
   fix: 'Replace with SF Symbols (iOS), Material Symbols (Android) or one consistent icon set; give icon-only controls an accessibility label.',
   sources: [SRC.hig_sfsymbols, SRC.m3_icons, SRC.catalog],
   file(f, report) {
-    const hits = f.strings.filter((s) => isEmojiOnly(s.value));
+    const hits = f.strings.filter((s) => isEmojiOnly(s.value) && !isEmojiData(f, s.start));
     // Five or more emoji strings in one list are a picker or a reaction bar: content, not icons.
     const skip = new Set<number>();
     let run: typeof hits = [];
@@ -56,29 +66,126 @@ export const emojiAsIcon: Rule = {
 
 function namedColorHits(f: SourceFile): { offset: number; raw: string }[] {
   const out: { offset: number; raw: string }[] = [];
+  // translucent black is a scrim or shadow (see isScrim)
   if (f.lang === 'dart') {
-    for (const m of matches(/\bColors\.(?!transparent\b)([a-zA-Z]+)\b/, f.code)) out.push({ offset: m.index, raw: m[0] });
+    for (const m of matches(/\bColors\.(?!transparent\b)([a-zA-Z]+)\b/, f.code)) {
+      if (m[1] === 'black' && /^\.with(?:Opacity|Values|Alpha)\(/.test(f.code.slice(m.index + m[0].length))) continue;
+      out.push({ offset: m.index, raw: m[0] });
+    }
   } else if (f.lang === 'kotlin') {
-    for (const m of matches(/\bColor\.(White|Black|Red|Green|Blue|Yellow|Cyan|Magenta|Gray|LightGray|DarkGray)\b/, f.code)) out.push({ offset: m.index, raw: m[0] });
+    for (const m of matches(/\bColor\.(White|Black|Red|Green|Blue|Yellow|Cyan|Magenta|Gray|LightGray|DarkGray)\b/, f.code)) {
+      if (m[1] === 'Black' && /^\s*\.copy\(\s*alpha/.test(f.code.slice(m.index + m[0].length))) continue;
+      out.push({ offset: m.index, raw: m[0] });
+    }
   } else if (f.lang === 'swift') {
-    for (const m of matches(/\bColor\.(white|black|purple|indigo|pink|orange|blue|green|red|yellow|teal|mint|cyan|brown)\b/, f.code)) out.push({ offset: m.index, raw: m[0] });
+    // Color.red, .blue, .indigo ... are system colors that adapt to dark mode and
+    // Increase Contrast; only white and black are fixed.
+    for (const m of matches(/\bColor\.(white|black)\b/, f.code)) {
+      if (m[1] === 'black' && /^\s*\.opacity\(/.test(f.code.slice(m.index + m[0].length))) continue;
+      out.push({ offset: m.index, raw: m[0] });
+    }
   }
+  return out;
+}
+
+/** Fully transparent, or translucent black: a scrim or shadow, the same in light and dark (Material's scrim role is black in both). */
+function isScrim(c: RGB): boolean {
+  return c.a === 0 || (c.r === 0 && c.g === 0 && c.b === 0 && c.a < 1);
+}
+
+const SCHEME_WORD = /isDark|darkMode|DarkTheme|Brightness\.dark|\.dark\b|['"]dark['"]|isLight|['"]light['"]|(?:scheme|brightness|appearance)\s*===?/i;
+const CONDITIONAL = /\?(?![.?:])|\bif\b|\belse\b|\bwhen\b/;
+
+/** The literal is one side of a light/dark choice (`isDark ? '#10161F' : '#FFFFFF'`), which is what adapting means. */
+function inSchemeConditional(f: SourceFile, offset: number): boolean {
+  let start = offset;
+  for (let i = 0; i < 3 && start > 0; i++) start = Math.max(0, f.code.lastIndexOf('\n', start - 1));
+  const win = f.code.slice(start, offset);
+  return SCHEME_WORD.test(win) && CONDITIONAL.test(win);
+}
+
+/** Attribute ranges of react-native-svg elements: fills in a vector logo or illustration are artwork. */
+function svgImports(f: SourceFile): Set<string> {
+  const names = new Set<string>();
+  if (f.lang !== 'js' || !f.ast) return names;
+  for (const st of f.ast.program.body as any[]) {
+    if (st.type !== 'ImportDeclaration' || st.source.value !== 'react-native-svg') continue;
+    for (const sp of st.specifiers) names.add(sp.local.name);
+  }
+  return names;
+}
+
+function svgArtworkRanges(f: SourceFile): [number, number][] {
+  const out: [number, number][] = [];
+  const names = svgImports(f);
+  if (!names.size || !f.ast) return out;
+  walk(f.ast.program, (n: any) => {
+    if (n.type !== 'JSXOpeningElement') return;
+    const root = n.name.type === 'JSXMemberExpression' ? n.name.object?.name : n.name.name;
+    if (names.has(root) && n.attributes.length) out.push([n.attributes[0].start, n.attributes[n.attributes.length - 1].end]);
+  });
+  return out;
+}
+
+const STYLE_KEY = /color$|^(?:fill|stroke|background|tint|border|shadow|outline)$/i;
+
+/**
+ * Offsets of colors that are given a name rather than applied: `gray1: '#F3F3F8'` in a palette
+ * object, `const accent = '#0085FF'`, `static const brand = Color(0xFF...)`. Naming a color is
+ * what a token does; literals under style keys (backgroundColor, color, fill) or inside
+ * StyleSheet.create and JSX are applications and still count.
+ */
+function namedColorDefinitions(f: SourceFile): Set<number> {
+  const out = new Set<number>();
+  if (f.lang === 'js') {
+    if (!f.ast) return out;
+    const applied: [number, number][] = [];
+    walk(f.ast.program, (n: any) => {
+      if (n.type === 'JSXAttribute') applied.push([n.start, n.end]);
+      if (n.type === 'CallExpression' && n.callee?.type === 'MemberExpression' && n.callee.object?.name === 'StyleSheet') applied.push([n.start, n.end]);
+    });
+    const inApplied = (o: number) => applied.some(([a, b]) => o >= a && o < b);
+    walk(f.ast.program, (n: any) => {
+      if (n.type === 'ObjectProperty' && n.value?.type === 'StringLiteral') {
+        const key = String(n.key?.name ?? n.key?.value ?? '');
+        if (key && !STYLE_KEY.test(key) && !inApplied(n.value.start)) out.add(n.value.start);
+      }
+      if (n.type === 'VariableDeclarator' && n.init?.type === 'StringLiteral' && !STYLE_KEY.test(n.id?.name ?? '') && !inApplied(n.init.start)) out.add(n.init.start);
+    });
+    return out;
+  }
+  for (const m of matches(/^[ \t]*(?:(?:static|private|public|internal|override|fileprivate)\s+)*(?:const|final|val|let|var)\s+([A-Za-z_]\w*)\s*(?::\s*[\w.?]+\s*)?=\s*(?:const\s+)?/m, f.code)) {
+    if (STYLE_KEY.test(m[1])) continue;
+    out.add(m.index + m[0].length);
+  }
+  // a color per enum case: `WonderType.petra => Color(...)` (Dart), `Kind.Alert -> Color(...)` (Kotlin), `case .alert: return Color(...)` (Swift)
+  for (const m of matches(/^[ \t]*(?:[A-Z]\w*)?\.\w+\s*(?:=>|->)\s*(?:const\s+)?|^[ \t]*case\s+\.\w+\s*:\s*(?:return\s+)?/m, f.code)) out.add(m.index + m[0].length);
   return out;
 }
 
 export const hardcodedColor: Rule = {
   id: 'hardcoded-color',
+  perOccurrence: true,
   title: 'Colors hard-coded in screens',
   platforms: [...ALL],
   weight: 0.5,
   cap: 10,
-  why: 'A hex value in a screen is the same in light and dark mode, in high-contrast mode and in every theme. Semantic colors (label, background, primary, onSurface) adapt; literals are how dark mode ends up half-broken.',
+  why: 'A hex value in a screen is the same in light and dark mode, in high-contrast mode and in every theme. Semantic colors (label, background, primary, onSurface) adapt; literals are how dark mode ends up half-broken. Not counted: token files, colors given a name (gray1: #F3F3F8 in a palette, static const brand = Color(...)), values picked per color scheme (isDark ? a : b), transparent and translucent black (scrims, shadows), fills inside SVG artwork, and SwiftUI system colors such as Color.red, which adapt.',
   fix: 'Move the value into your theme/tokens and reference it by role (e.g. colors.surface, Theme.of(context).colorScheme.primary, MaterialTheme.colorScheme.onSurface, Color(.label)).',
-  sources: [SRC.hig_color, SRC.m3_color_roles],
+  sources: [SRC.hig_color, SRC.m3_color_roles, SRC.swiftui_system_colors],
   file(f, report) {
     if (f.isTokenFile) return;
-    for (const h of colorLiterals(f)) report(h.offset, `${h.raw.length > 30 ? hex6(h.rgb) : h.raw} is a literal color; use a theme role instead.`);
-    for (const h of namedColorHits(f)) report(h.offset, `${h.raw} is a fixed palette color; use a theme role instead.`);
+    const art = svgArtworkRanges(f);
+    const named = namedColorDefinitions(f);
+    const skip = (o: number) => named.has(o) || inSchemeConditional(f, o) || art.some(([a, b]) => o >= a && o < b);
+    for (const h of colorLiterals(f)) {
+      if (isScrim(h.rgb) || skip(h.offset)) continue;
+      report(h.offset, `${h.raw.length > 30 ? hex6(h.rgb) : h.raw} is a literal color; use a theme role instead.`);
+    }
+    for (const h of namedColorHits(f)) {
+      if (skip(h.offset)) continue;
+      report(h.offset, `${h.raw} is a fixed palette color; use a theme role instead.`);
+    }
   },
 };
 
@@ -146,10 +253,13 @@ export function gradients(f: SourceFile, p: Project): Gradient[] {
   const out: Gradient[] = [];
   if (f.lang === 'js') {
     if (!f.ast) return out;
+    const svg = svgImports(f);
     walk(f.ast.program, (n: any) => {
       if (n.type === 'JSXOpeningElement') {
         const name = n.name.type === 'JSXIdentifier' ? n.name.name : n.name.type === 'JSXMemberExpression' ? n.name.property.name : '';
         if (!/Gradient$/.test(name)) return;
+        // <LinearGradient> from react-native-svg is a gradient definition inside vector artwork
+        if (n.name.type === 'JSXIdentifier' ? svg.has(name) : svg.has(n.name.object?.name)) return;
         const attr = n.attributes.find((a: any) => a.type === 'JSXAttribute' && a.name.name === 'colors');
         const span = attr ? f.code.slice(attr.start, attr.end) : '';
         out.push({ offset: n.start, colors: [...literalColorsIn(span, 'js'), ...resolveRefs(span.replace(/^colors=/, ''), p)] });
@@ -202,20 +312,27 @@ export const purpleGradient: Rule = {
 
 export const gradientOveruse: Rule = {
   id: 'gradient-overuse',
+  perOccurrence: true,
   title: 'Gradients everywhere',
   platforms: [...ALL],
   weight: 1.5,
   cap: 8,
   free: 2,
-  why: 'When every card, button and avatar has a gradient, nothing stands out and the screen looks like a template. Platform guidelines reserve strong color for the few things the user should act on.',
+  why: 'When every card, button and avatar has a gradient, nothing stands out and the screen looks like a template. Platform guidelines reserve strong color for the few things the user should act on. Scrims (transparent to black over images and video) are not counted.',
   fix: 'Keep at most one or two gradients for brand moments. Flat surfaces with clear elevation or borders carry hierarchy better.',
   sources: [SRC.hig_color, SRC.m3_color_roles],
   file(f, report, p) {
-    for (const g of gradients(f, p)) report(g.offset, 'Gradient fill.');
+    // a fade from transparent to black over media is a legibility scrim, not decoration
+    for (const g of gradients(f, p)) if (!(g.colors.length >= 2 && g.colors.every(isScrim))) report(g.offset, 'Gradient fill.');
   },
 };
 
 // ---------------------------------------------------------------- glass
+
+/** A ripple, pressed, hover or track color is feedback or a control part, not a surface. */
+const FEEDBACK = /ripple|pressed|highlight|underlay|hover|splash|overlayColor|focusColor|trackColor|indicatorColor|thumbColor|dividerColor|cursorColor/i;
+/** Apple's materials are meant for bars, sheets and overlays; blur there is not glass on content. */
+const BAR_OR_OVERLAY = /app_?bar|tab_?bar|nav(?:igation)?_?bar|tool_?bar|header|bottom_?bar|status_?bar|sheet|overlay|lightbox|chrome|backdrop|modal|dialog|menu|popover/i;
 
 function translucentWhite(rgb: RGB | null) {
   return !!rgb && rgb.r >= 240 && rgb.g >= 240 && rgb.b >= 240 && rgb.a >= 0.04 && rgb.a <= 0.35;
@@ -223,41 +340,44 @@ function translucentWhite(rgb: RGB | null) {
 
 export const glassmorphism: Rule = {
   id: 'glassmorphism',
+  perOccurrence: true,
   title: 'Glassmorphism on content',
   platforms: ['react-native', 'flutter', 'compose'],
   weight: 2,
   cap: 8,
   free: 1,
-  why: 'Frosted cards with thin white borders cost contrast (text over a busy background fails WCAG quickly) and on Android cost GPU time. iOS materials are designed for bars and overlays, not for every card.',
+  why: 'Frosted cards with thin white borders cost contrast (text over a busy background fails WCAG quickly) and on Android cost GPU time. iOS materials are designed for bars and overlays, not for every card, so blur in files named for bars, headers, sheets, menus or overlays is not counted, and neither are translucent ripple, pressed, hover or track colors.',
   fix: 'Use opaque surfaces for content. On iOS, use system materials only for bars, sheets and overlays; on Android, prefer tonal surface colors.',
   sources: [SRC.hig_materials, SRC.m3_elevation],
   file(f, report) {
+    const bar = BAR_OR_OVERLAY.test(f.rel);
+    const feedback = (o: number) => FEEDBACK.test(f.code.slice(Math.max(0, o - 80), o));
     if (f.lang === 'js') {
       if (!f.ast) return;
       walk(f.ast.program, (n: any) => {
-        if (n.type === 'JSXOpeningElement' && n.name.type === 'JSXIdentifier' && n.name.name === 'BlurView') report(n.start, 'BlurView used as a surface.');
+        if (n.type === 'JSXOpeningElement' && n.name.type === 'JSXIdentifier' && n.name.name === 'BlurView' && !bar) report(n.start, 'BlurView used as a surface.');
       });
       for (const s of f.strings) {
         if (s.kind !== 'StringLiteral' || !translucentWhite(parseCssColor(s.value))) continue;
         // a ripple or pressed-state color is feedback, not a surface
         const before = f.code.slice(Math.max(0, s.start - 80), s.start);
-        if (/ripple|pressed|highlight|underlay/i.test(before)) continue;
+        if (FEEDBACK.test(before)) continue;
         report(s.start, `${s.value} is a frosted-glass fill.`);
       }
       return;
     }
     if (f.lang === 'dart') {
-      for (const m of matches(/\bBackdropFilter\s*\(/, f.masked)) report(m.index, 'BackdropFilter blur used as a surface.');
+      if (!bar) for (const m of matches(/\bBackdropFilter\s*\(/, f.masked)) report(m.index, 'BackdropFilter blur used as a surface.');
       for (const m of matches(/\bColors\.white\.with(?:Opacity\(\s*|Values\(\s*alpha:\s*)(0?\.\d+)/, f.code)) {
         const a = parseFloat(m[1]);
-        if (a >= 0.04 && a <= 0.35) report(m.index, `${m[0]}) is a frosted-glass fill.`);
+        if (a >= 0.04 && a <= 0.35 && !feedback(m.index)) report(m.index, `${m[0]}) is a frosted-glass fill.`);
       }
     }
     if (f.lang === 'kotlin') {
-      for (const m of matches(/\.blur\(\s*\d/, f.masked)) report(m.index, 'Modifier.blur used as a surface.');
+      if (!bar) for (const m of matches(/\.blur\(\s*\d/, f.masked)) report(m.index, 'Modifier.blur used as a surface.');
       for (const m of matches(/\bColor\.White\.copy\(\s*alpha\s*=\s*(0?\.\d+)f?/, f.code)) {
         const a = parseFloat(m[1]);
-        if (a >= 0.04 && a <= 0.35) report(m.index, `${m[0]}) is a frosted-glass fill.`);
+        if (a >= 0.04 && a <= 0.35 && !feedback(m.index)) report(m.index, `${m[0]}) is a frosted-glass fill.`);
       }
     }
   },
@@ -349,12 +469,14 @@ export const typeScaleSprawl: Rule = {
   weight: 1,
   cap: 6,
   free: 8,
-  why: 'Generated screens pick a new font size for every label (11, 12, 13, 14, 15, 17, 22, 28, 34, 42 ...). Platform type scales have a handful of named roles; using them gives a clear hierarchy and Dynamic Type/font scaling for free.',
+  why: 'Generated screens pick a new font size for every label (11, 12, 13, 14, 15, 17, 22, 28, 34, 42 ...). Platform type scales have a handful of named roles; using them gives a clear hierarchy and Dynamic Type/font scaling for free. Sizes defined in theme/token files, or in modules that draw no UI, are the scale and are not counted.',
   fix: 'Map every size to a named role (iOS text styles, Material 3 type scale) and use the role, not the number.',
   sources: [SRC.hig_typography, SRC.m3_type_scale],
   project(p, report) {
     const seen = new Map<number, { file: string; line: number }>();
     for (const f of p.files) {
+      // a theme's Typography (all 15 Material 3 roles span 11 sizes) is the scale, not sprawl
+      if (f.isTokenFile || !f.rendersUi) continue;
       for (const h of fontSizes(f)) {
         if (seen.has(h.value)) continue;
         seen.set(h.value, { file: f.rel, line: f.lines.pos(h.offset).line });

@@ -19,6 +19,7 @@ export const SRC = {
   swiftui_custom_fonts: s('SwiftUI: Applying custom fonts to text', 'https://developer.apple.com/documentation/swiftui/applying-custom-fonts-to-text'),
   swiftui_navigationview: s('SwiftUI: NavigationView (deprecated)', 'https://developer.apple.com/documentation/swiftui/navigationview'),
   swiftui_button: s('SwiftUI: Button', 'https://developer.apple.com/documentation/swiftui/button'),
+  swiftui_system_colors: s('SwiftUI: Color.red, a context-dependent system color', 'https://developer.apple.com/documentation/swiftui/color/red'),
   swiftui_sensory: s('SwiftUI: sensoryFeedback', 'https://developer.apple.com/documentation/swiftui/view/sensoryfeedback(_:trigger:)'),
 
   m3_a11y: s('Material 3: Accessible design', 'https://m3.material.io/foundations/accessible-design/overview'),
@@ -45,6 +46,7 @@ export const SRC = {
   rn_modal: s('React Native: Modal presentationStyle', 'https://reactnative.dev/docs/modal#presentationstyle-ios'),
   rn_shadow: s('React Native: Shadow props', 'https://reactnative.dev/docs/shadow-props'),
   rn_color_scheme: s('React Native: useColorScheme', 'https://reactnative.dev/docs/usecolorscheme'),
+  rn_platform_files: s('React Native: Platform-specific extensions (.ios/.android/.native/.web)', 'https://reactnative.dev/docs/platform-specific-code#platform-specific-extensions'),
   rn_kav: s('React Native: KeyboardAvoidingView', 'https://reactnative.dev/docs/keyboardavoidingview'),
   expo_safe_areas: s('Expo: Safe areas', 'https://docs.expo.dev/develop/user-interface/safe-areas/'),
   expo_color_themes: s('Expo: Color themes', 'https://docs.expo.dev/develop/user-interface/color-themes/'),

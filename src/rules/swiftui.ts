@@ -6,6 +6,7 @@ const SW = ['swiftui'] as const;
 
 export const swiftTapGesture: Rule = {
   id: 'no-press-feedback',
+  perOccurrence: true,
   title: 'onTapGesture instead of Button',
   platforms: [...SW],
   weight: 2,
@@ -24,6 +25,7 @@ export const swiftTapGesture: Rule = {
 
 export const swiftFixedFont: Rule = {
   id: 'fixed-font-size',
+  perOccurrence: true,
   title: 'Fixed font sizes instead of text styles',
   platforms: [...SW],
   weight: 1,
@@ -57,17 +59,26 @@ export const swiftNavigationView: Rule = {
   },
 };
 
+const IMMERSIVE = /camera|video|player|photo|image|media|scanner|fullscreen|immersive/i;
+
 export const swiftFullScreenCover: Rule = {
   id: 'modal-instead-of-sheet',
+  perOccurrence: true,
   title: 'Full-screen covers for simple tasks',
   platforms: [...SW],
   weight: 2,
   cap: 6,
-  why: 'Apple reserves full-screen modals for immersive content (video, camera, multi-step creation). For a form or a detail, a sheet keeps the parent visible and can be swiped away.',
+  why: 'Apple reserves full-screen modals for immersive content (video, camera, multi-step creation). For a form or a detail, a sheet keeps the parent visible and can be swiped away. Covers whose binding or content names a camera, video, player, photo or media view are not counted.',
   fix: 'Use .sheet with .presentationDetents([.medium, .large]) unless the task truly needs the whole screen.',
   sources: [SRC.hig_sheets, SRC.hig_modality],
   file(f, report) {
-    for (const m of matches(/\.fullScreenCover\s*\(/, f.masked)) report(m.index, '.fullScreenCover; would a .sheet do?');
+    for (const m of matches(/\.fullScreenCover\s*\(/, f.masked)) {
+      const span = callSpan(f.masked, m.index + m[0].length - 1);
+      const body = span ? f.code.slice(span.args[0], span.trailing ? span.trailing[1] : span.args[1]) : '';
+      // Apple: full screen is for immersive content such as video, photos and the camera
+      if (IMMERSIVE.test(body)) continue;
+      report(m.index, '.fullScreenCover; would a .sheet do?');
+    }
   },
 };
 
@@ -87,6 +98,7 @@ export const swiftForcedScheme: Rule = {
 
 export const swiftSmallTarget: Rule = {
   id: 'touch-target-too-small',
+  perOccurrence: true,
   title: 'Touch targets under 44 pt',
   platforms: [...SW],
   weight: 2,
