@@ -15,6 +15,7 @@ export interface RuleInfo {
   weight: number;
   cap: number;
   free: number;
+  perOccurrence: boolean;
   platforms: string[];
   why: string;
   fix: string;
@@ -27,7 +28,7 @@ export function ruleCatalog(): RuleInfo[] {
   for (const r of RULES) {
     const cur = map.get(r.id);
     if (!cur) {
-      map.set(r.id, { id: r.id, title: r.title, weight: r.weight, cap: r.cap, free: r.free ?? 0, platforms: [...r.platforms], why: r.why, fix: r.fix, sources: [...r.sources] });
+      map.set(r.id, { id: r.id, title: r.title, weight: r.weight, cap: r.cap, free: r.free ?? 0, perOccurrence: !!r.perOccurrence, platforms: [...r.platforms], why: r.why, fix: r.fix, sources: [...r.sources] });
       continue;
     }
     for (const p of r.platforms) if (!cur.platforms.includes(p)) cur.platforms.push(p);

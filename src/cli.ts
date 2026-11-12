@@ -2,6 +2,7 @@
 import { scan } from './scan.js';
 import { badgeUrl, makeStyle, renderJson, renderMarkdown, renderSarif, renderText } from './report.js';
 import { ruleCatalog } from './rules/index.js';
+import { REFERENCE_FILES } from './score.js';
 import { PLATFORM_LABEL, type Platform } from './types.js';
 import { VERSION } from './version.js';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -102,7 +103,7 @@ function main(): number {
     console.log(`\n  ${st.bold(r.id)}  ${r.title}\n`);
     console.log(`  ${st.dim('why')}\n  ${r.why}\n`);
     console.log(`  ${st.dim('fix')}\n  ${r.fix}\n`);
-    console.log(`  ${st.dim('score')}\n  -${r.weight} per finding, at most -${r.cap}${r.free ? `, first ${r.free} free` : ''}\n`);
+    console.log(`  ${st.dim('score')}\n  -${r.weight} per finding, at most -${r.cap}${r.free ? `, first ${r.free} free` : ''}${r.perOccurrence ? `\n  counted per ${REFERENCE_FILES} files in larger projects` : ''}\n`);
     console.log(`  ${st.dim('sources')}`);
     for (const s of r.sources) console.log(`  ${s.title}\n  ${st.dim(s.url)}`);
     console.log('');
