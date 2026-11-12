@@ -6,7 +6,6 @@
 </p>
 
 <p align="center">
-  <b>找出你的手机 App 里的"AI 味"。</b><br>
   一个给 Expo / React Native、Flutter、SwiftUI 和 Jetpack Compose 代码打 0 到 100 分的扫描器，<br>
   外加一个能把问题修掉的 Agent Skill。
 </p>
