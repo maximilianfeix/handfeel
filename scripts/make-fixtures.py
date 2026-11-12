@@ -46,6 +46,9 @@ add('hardcoded-color', 'flutter',
 add('hardcoded-color', 'swiftui',
     sw('struct V: View { var body: some View { Text("Hi").foregroundStyle(Color(red: 0.2, green: 0.2, blue: 0.3)) } }\n'),
     sw('struct V: View { var body: some View { Text("Hi").foregroundStyle(.secondary) } }\n'))
+add('hardcoded-color', 'swiftui-string',
+    sw('struct V: View { var body: some View { Text("Use Color.white sparingly").foregroundStyle(Color.white) } }\n'),
+    sw('struct V: View { var body: some View { Text("Use Color.white sparingly").foregroundStyle(.primary) } }\n'))
 add('hardcoded-color', 'compose',
     kt("@Composable fun T() { Text(\"Hi\", color = Color(0xFF222233)) }\n"),
     kt("@Composable fun T() { Text(\"Hi\", color = MaterialTheme.colorScheme.onSurface) }\n"))

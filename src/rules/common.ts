@@ -71,19 +71,19 @@ function namedColorHits(f: SourceFile): { offset: number; raw: string }[] {
   const out: { offset: number; raw: string }[] = [];
   // translucent black is a scrim or shadow (see isScrim)
   if (f.lang === 'dart') {
-    for (const m of matches(/\bColors\.(?!transparent\b)([a-zA-Z]+)\b/, f.code)) {
+    for (const m of matches(/\bColors\.(?!transparent\b)([a-zA-Z]+)\b/, f.masked)) {
       if (m[1] === 'black' && /^\.with(?:Opacity|Values|Alpha)\(/.test(f.code.slice(m.index + m[0].length))) continue;
       out.push({ offset: m.index, raw: m[0] });
     }
   } else if (f.lang === 'kotlin') {
-    for (const m of matches(/\bColor\.(White|Black|Red|Green|Blue|Yellow|Cyan|Magenta|Gray|LightGray|DarkGray)\b/, f.code)) {
+    for (const m of matches(/\bColor\.(White|Black|Red|Green|Blue|Yellow|Cyan|Magenta|Gray|LightGray|DarkGray)\b/, f.masked)) {
       if (m[1] === 'Black' && /^\s*\.copy\(\s*alpha/.test(f.code.slice(m.index + m[0].length))) continue;
       out.push({ offset: m.index, raw: m[0] });
     }
   } else if (f.lang === 'swift') {
     // Color.red, .blue, .indigo ... are system colors that adapt to dark mode and
     // Increase Contrast; only white and black are fixed.
-    for (const m of matches(/\bColor\.(white|black)\b/, f.code)) {
+    for (const m of matches(/\bColor\.(white|black)\b/, f.masked)) {
       if (m[1] === 'black' && /^\s*\.opacity\(/.test(f.code.slice(m.index + m[0].length))) continue;
       out.push({ offset: m.index, raw: m[0] });
     }
