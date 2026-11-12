@@ -1,0 +1,59 @@
+{
+  "name": "handfeel",
+  "version": "0.1.0",
+  "description": "Find the AI look in mobile apps. Static scanner and agent skill for Expo/React Native, Flutter, SwiftUI and Jetpack Compose.",
+  "type": "module",
+  "bin": {
+    "handfeel": "dist/src/cli.js"
+  },
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": "./dist/src/index.js"
+  },
+  "files": [
+    "dist/src",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/test/",
+    "lint": "tsc -p tsconfig.json --noEmit && node scripts/check-rules.mjs",
+    "docs": "npm run build && node scripts/gen-rules-doc.mjs",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "unslop",
+    "mobile",
+    "react-native",
+    "expo",
+    "flutter",
+    "swiftui",
+    "jetpack-compose",
+    "design",
+    "lint",
+    "agent-skills",
+    "claude-skills"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maximilianfeix/handfeel.git"
+  },
+  "homepage": "https://github.com/maximilianfeix/handfeel#readme",
+  "bugs": "https://github.com/maximilianfeix/handfeel/issues",
+  "license": "MIT",
+  "author": "Maximilian Feix",
+  "dependencies": {
+    "@babel/parser": "^7.29.14"
+  },
+  "devDependencies": {
+    "@babel/types": "^7.29.14",
+    "@types/node": "^18.19.130",
+    "typescript": "^5.9.3"
+  }
+}
