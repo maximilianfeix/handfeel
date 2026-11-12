@@ -1,0 +1,76 @@
+name: SwiftUI eval build
+
+# The maintainer has no Xcode, so SwiftUI code is only ever built here.
+on:
+  push:
+    branches: [main]
+    paths: ['evals/apps/swiftui-*/**', '.github/workflows/swiftui.yml']
+  pull_request:
+    paths: ['evals/apps/swiftui-*/**', '.github/workflows/swiftui.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [before]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate an Xcode project
+        working-directory: evals/apps/swiftui-recipes/${{ matrix.variant }}
+        run: |
+          brew install xcodegen > /dev/null
+          cat > project.yml <<'YML'
+          name: Recipes
+          options:
+            bundleIdPrefix: dev.handfeel
+            deploymentTarget:
+              iOS: "18.0"
+          targets:
+            Recipes:
+              type: application
+              platform: iOS
+              sources: [Sources/RecipesApp]
+              settings:
+                base:
+                  GENERATE_INFOPLIST_FILE: YES
+                  INFOPLIST_KEY_UILaunchScreen_Generation: YES
+                  PRODUCT_BUNDLE_IDENTIFIER: dev.handfeel.recipes
+                  CODE_SIGNING_ALLOWED: NO
+                  SWIFT_VERSION: "5.0"
+          YML
+          xcodegen generate
+      - name: Build for the simulator
+        working-directory: evals/apps/swiftui-recipes/${{ matrix.variant }}
+        run: |
+          xcodebuild -version
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for k,v in sorted(d.items(), reverse=True) if 'iOS' in k for x in v if x['name'].startswith('iPhone')))")
+          echo "DEVICE=$DEVICE" >> $GITHUB_ENV
+          set -o pipefail
+          xcodebuild -project Recipes.xcodeproj -scheme Recipes -sdk iphonesimulator -destination "id=$DEVICE" -derivedDataPath build build 2>&1 | tee $RUNNER_TEMP/build.log | grep -E "error:|warning: |BUILD (SUCCEEDED|FAILED)" | head -60
+      - name: Screenshots (light and dark)
+        working-directory: evals/apps/swiftui-recipes/${{ matrix.variant }}
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/shots
+          xcrun simctl boot "$DEVICE" || true
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcrun simctl install "$DEVICE" build/Build/Products/Debug-iphonesimulator/Recipes.app
+          for mode in light dark; do
+            xcrun simctl ui "$DEVICE" appearance $mode
+            xcrun simctl terminate "$DEVICE" dev.handfeel.recipes || true
+            xcrun simctl launch "$DEVICE" dev.handfeel.recipes
+            sleep 6
+            xcrun simctl io "$DEVICE" screenshot $GITHUB_WORKSPACE/shots/swiftui-recipes-${{ matrix.variant }}-$mode.png
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: swiftui-recipes-${{ matrix.variant }}
+          path: |
+            shots/
+            ${{ runner.temp }}/build.log
