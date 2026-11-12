@@ -1,14 +1,257 @@
-# handfeel
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/banners/readme-banner-dark.png">
+    <img src="brand/banners/readme-banner-light.png" alt="handfeel" width="720">
+  </picture>
+</p>
 
-Find the AI look in mobile apps. A static scanner and an agent skill for Expo/React Native, Flutter, SwiftUI and Jetpack Compose.
+<p align="center">
+  <b>Your agent built the app. handfeel makes it feel like it belongs on a phone.</b><br>
+  An agent skill and an offline scanner for Expo / React Native, Flutter, SwiftUI and Jetpack Compose.
+</p>
 
-**Work in progress.** Not released yet; the npm package is not published.
+<p align="center">English · <a href="README.zh-CN.md">简体中文</a></p>
+
+<p align="center">
+  <img src="docs/assets/hero.webp" alt="A generated mobile app before and after handfeel. Scanner score 49 before, 100 after." width="860">
+</p>
+
+Generated apps fail in the same ways: indigo-to-violet gradients, frosted cards, an emoji for every icon, a new font size per label, 28-point buttons, taps that show nothing, no haptics, a centered popup where a sheet belongs, white screens at night. handfeel gives your coding agent the platform rules to fix that screen by screen, and a scanner that finds what is left and scores it from 0 to 100.
+
+## Install
 
 ```sh
-npm install && npm run build
-node dist/src/cli.js scan path/to/your/app
+npx skills add maximilianfeix/handfeel        # Claude Code, Codex and other agents that read .agents/skills
+npx handfeel init cursor                      # Cursor: writes .cursor/rules/handfeel.mdc
+npx handfeel scan .                           # just the scanner, no agent needed
 ```
 
-The scanner runs offline, makes no AI calls, and prints a 0-100 score with every finding as `file:line`. `node dist/src/cli.js rules` lists the rules, `explain <rule>` shows why each one exists and its sources.
+Claude Code plugin instead: `/plugin marketplace add maximilianfeix/handfeel`, then `/plugin install handfeel@handfeel`.
 
-MIT licensed.
+Then ask your agent: *"audit this app with handfeel"* (report only, `file:line` per finding) or *"use handfeel to fix the screens"* (small changes, one screen and one pass at a time: touch, structure, color, type, icons, spacing, platform details). It never removes features, screens or flows.
+
+The skills and plugin routes were tested in fresh projects on 2026-11-12: Claude Code picked the skill up on its own, and Codex lists it. Cursor reads `.agents/skills` according to its docs, but neither Cursor route has been tried in the Cursor app yet.
+
+## What it fixes
+
+Eight of the patterns, each taken from the [platform references](skills/handfeel/references/). Every rule there has the slop, the fix, and the quoted source.
+
+**Taps that show nothing** (Expo / React Native, `no-press-feedback`)
+
+```diff
+- <Pressable onPress={() => open(item)}>
++ <Pressable
++   onPress={() => open(item)}
++   android_ripple={{ color: c.ripple }}
++   style={({ pressed }) => ({ backgroundColor: pressed && Platform.OS === 'ios' ? c.highlight : 'transparent' })}
++ >
+```
+
+**A gradient pill with `onTapGesture`** (SwiftUI, `no-press-feedback`)
+
+```diff
+- Text("Save")
+-     .background(LinearGradient(colors: [.purple, .blue], startPoint: .leading, endPoint: .trailing))
+-     .cornerRadius(16).shadow(radius: 10)
+-     .onTapGesture { save() }
++ Button("Save", action: save)
++     .buttonStyle(.borderedProminent)
++     .controlSize(.large)
+```
+
+**A 20 dp touch target** (Jetpack Compose, `touch-target-too-small`)
+
+```diff
+- Icon(Icons.Default.Close, null, Modifier.size(20.dp).clickable { onClose() })
++ IconButton(onClick = onClose) {
++     Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
++ }
+```
+
+**A form in a dialog** (Flutter, `modal-instead-of-sheet`)
+
+```diff
+- showDialog(context: context, builder: (_) => AlertDialog(content: form));
++ showModalBottomSheet(context: context, showDragHandle: true, useSafeArea: true,
++     isScrollControlled: true, builder: (_) => form);
+```
+
+**Silent selection** (Flutter, `no-haptics`)
+
+```diff
+- GestureDetector(onTap: () => setState(() => selected = i), child: Segment(label))
++ InkWell(
++   onTap: () { HapticFeedback.selectionClick(); setState(() => selected = i); },
++   child: Segment(label),
++ )
+```
+
+**Emoji as icons** (Expo / React Native, `emoji-as-icon`)
+
+```diff
+- <Text style={{ fontSize: 22 }}>{'\u{1F3E0}'}</Text>   // house emoji as the Home tab icon
++ <SymbolView name={{ ios: 'house.fill', android: 'home' }} size={24} tintColor={c.text} />
+```
+
+**The default purple gradient** (Flutter, `purple-gradient`)
+
+```diff
+- gradient: LinearGradient(colors: [Color(0xFF667EEA), Color(0xFF764BA2)]),
++ color: Theme.of(context).colorScheme.surfaceContainerHigh,
+```
+
+**A point size per label** (SwiftUI, `fixed-font-size`)
+
+```diff
+- Text("Good morning").font(.system(size: 34, weight: .ultraLight))
+- Text(title).font(.custom("Inter-Bold", fixedSize: 28))
++ Text("Good morning").font(.largeTitle)
++ Text(title).font(.custom("Inter-Bold", size: 28, relativeTo: .title))
+```
+
+The skill also covers what a scanner can't see: hierarchy, copy, empty and loading states, motion and Reduce Motion. The full list of tells is in [signs.md](skills/handfeel/references/signs.md).
+
+## The scanner
+
+<p align="center"><img src="docs/assets/scan.gif" alt="npx handfeel scan on a generated Expo app" width="760"></p>
+
+```sh
+npx handfeel scan .                 # score and every finding as file:line
+npx handfeel scan . --json          # or --sarif (GitHub code scanning), --md (PR comments)
+npx handfeel rules                  # all 27 rules with weight and cap
+npx handfeel explain no-haptics     # why the rule exists, how to fix it, sources
+npx handfeel badge .                # a README badge with your score
+```
+
+It reads source files and nothing else: no network, no AI calls, no code execution. React Native files go through a Babel AST; Dart, Swift and Kotlin use tested pattern rules. The same code gives the same score every time.
+
+```text
+  handfeel 0.1.0  ·  Expo / React Native  ·  14 files
+
+   49 / 100   AI look
+
+  where the points went
+    -10  purple-gradient       2 found
+    -10  no-dark-mode          1 found
+   -9.5  hardcoded-color       19 found
+     -8  no-press-feedback     4 found
+     -6  glassmorphism         4 found, 1 free
+     -5  type-scale-sprawl     13 found, 8 free
+     -2  icon-button-no-label  2 found
+      0  gradient-overuse      2 found, 2 free
+
+  app/(tabs)/index.tsx
+    32:7    purple-gradient       Gradient uses #8E5CF0, the indigo/violet band generated UIs default to.
+    88:86   glassmorphism         rgba(255,255,255,0.3) is a frosted-glass fill.
+  app/(tabs)/budgets.tsx
+    85:7    icon-button-no-label  Pressable contains only an icon and has no accessibilityLabel.
+    ...
+```
+
+### How the score works
+
+Each rule has a weight per finding, a cap, and sometimes a few free findings:
+
+```text
+score = floor(100 − Σ min(cap, weight × (count − free)))
+```
+
+A single noisy rule can't sink the score, and the breakdown shows where every point went. 90 and up reads "feels native", 75 "almost there", 50 "looks generated", below that "AI look". A score of 100 means the scanner found nothing it knows how to find. It does not mean the app is well designed.
+
+<!-- REAL-APP-SCORES -->
+
+### CI
+
+Fail the build below a score, or send findings to GitHub code scanning:
+
+```yaml
+- run: npx handfeel scan . --min-score 80
+- run: npx handfeel scan . --sarif > handfeel.sarif
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: handfeel.sarif
+```
+
+### Ignoring a finding
+
+Put a comment on the line above. It works in TypeScript, Dart, Swift and Kotlin:
+
+```ts
+// handfeel-ignore-next-line hardcoded-color
+```
+
+`handfeel-ignore-line` and `handfeel-ignore-file` work the same way. Leave out the rule id to ignore every rule. Other options: `--ignore "legacy/**"`, `--only`, `--disable`.
+
+## Platforms
+
+| | Expo / React Native | Flutter | SwiftUI | Jetpack Compose |
+|---|---|---|---|---|
+| Scanner rules | 21 | 20 | 14 | 16 |
+| Skill: audit | yes | yes | yes | yes |
+| Skill: fix | yes, evaluated | yes, evaluated | rules written, not evaluated | rules written, not evaluated |
+| Generated apps fixed in evals | 3 | 2 | 0 | 0 |
+| Screens checked after the fix | Expo Web | Flutter web build in CI | generated app builds and runs in the iOS simulator in CI (not fixed yet) | not built in the evals |
+
+Nothing has run on a physical device. The generated SwiftUI app compiles unchanged with Xcode 26.6 and runs in the iOS simulator on a CI macOS runner ([screens](docs/evals.md#swiftui)); its fixed version and a Compose eval app are still open. Contributions welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Where the rules come from
+
+Every rule cites at least one source, and `handfeel explain <rule>` prints them. Most come from the [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines), [Material 3](https://m3.material.io) and the Android, React Native, Expo, Flutter and SwiftUI docs, quoted in the [references](skills/handfeel/references/). All 56 source URLs are listed in [docs/sources.md](docs/sources.md).
+
+Some tells have no official rule against them: no platform doc forbids an emoji icon or a violet accent. Those rules cite the [slop catalog](docs/slop-catalog.md) instead, a scan of 7 apps generated from plain prompts on 2026-11-12:
+
+| Pattern | Apps |
+|---|---:|
+| Hard-coded colors in screens | 7 of 7 |
+| Too many font sizes | 6 of 7 |
+| Spacing off the 4-point grid | 6 of 7 |
+| Taps without visual feedback | 5 of 7 |
+| No haptics anywhere | 4 of 7 |
+| Dark mode missing or forced | 4 of 7 |
+| Indigo-violet colors | 3 of 7 |
+
+Seven apps is a small sample, so read these as counts from those apps.
+
+## Evals
+
+Five apps were generated from plain prompts (three by Claude Sonnet 5.5, two by gpt-6.1-sol in Codex). A fresh agent then ran the skill on each in fix mode, with no other context. The after column is scored a second time with every ignore comment disabled, so suppressed findings still count.
+
+| App | Platform | Before | After | After, ignores disabled |
+|---|---|---:|---:|---:|
+| expo-budget | Expo | 49 | 100 | 100 |
+| expo-chat | Expo | 35 | 100 | 90 |
+| expo-habits | Expo | 71 | 100 | 100 |
+| flutter-fitness | Flutter | 28 | 100 | 100 |
+| flutter-meditation | Flutter | 58 | 100 | 100 |
+| **Mean** | | **48** | **100** | **98** |
+
+The fixing agents could run the scanner, so a high score partly measures that they followed it. The checks it can't game: no fix introduced a type error in code it wrote, Flutter `lib/` analyzes with 0 errors and 0 warnings before and after, and every Flutter app still builds for web in CI.
+
+![expo-budget before, after in dark mode, after in light mode](docs/assets/evals/expo-budget.png)
+
+Method, prompts, diffs, build checks and what was not tested: [docs/evals.md](docs/evals.md).
+
+## How it compares
+
+handfeel exists because of [heydamir's Unslopping series](https://x.com/heydamir/status/2115063463063998736) and [unslop](https://github.com/heydamir/unslop). The idea of walking a generated screen through ordered passes until it looks designed comes from there. The web already has good tools for this; handfeel does the same job for native app source.
+
+| | Built for | Static scanner | Deterministic score |
+|---|---|---|---|
+| [unslop](https://github.com/heydamir/unslop) | Web UI: dashboards, landing pages | no | no |
+| [impeccable](https://github.com/pbakaus/impeccable) | Web, with native audit guidance | `npx impeccable detect`, web only | no (`critique` gives a model-scored review) |
+| [hallmark](https://github.com/Nutlope/hallmark) | Web UI and landing pages, 50 themes | `sloplint` (static checks, optional browser render), web | no |
+| handfeel | Expo / RN, Flutter, SwiftUI, Compose | `npx handfeel scan`, native source | 0-100 |
+
+impeccable comes closest. Its `audit` and `adapt` commands have native versions that read SwiftUI, Compose, React Native and Flutter source, but its README says ["the detector, live mode … and the edit hook stay web-only"](https://github.com/pbakaus/impeccable#good-to-know). For a web app, use those three. For a phone app, handfeel's scanner and rules can run next to impeccable's native audit.
+
+## Contributing
+
+New rules are the most useful contribution. A rule needs a pattern you have seen in generated code, a fix, a source, and a bad and a good fixture. [CONTRIBUTING.md](CONTRIBUTING.md) walks through it, and issues labelled [good first issue](https://github.com/maximilianfeix/handfeel/labels/good%20first%20issue) are a place to start. False positives are just as welcome: [report one](https://github.com/maximilianfeix/handfeel/issues/new?template=false-positive.yml) with the snippet.
+
+## Star history
+
+<a href="https://star-history.com/#maximilianfeix/handfeel&Date"><img src="https://api.star-history.com/svg?repos=maximilianfeix/handfeel&type=Date" alt="Star history of maximilianfeix/handfeel" width="600"></a>
+
+## License
+
+[MIT](LICENSE) © Maximilian Feix

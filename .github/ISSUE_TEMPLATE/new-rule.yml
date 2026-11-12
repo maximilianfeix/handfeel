@@ -1,0 +1,61 @@
+name: New rule
+description: Propose a pattern the scanner or the skill should catch
+labels: ["new rule"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Every rule needs a source: Apple HIG, Material 3, or official platform or framework docs. Patterns with no official source (like emoji icons) need to show up in generated apps; see docs/slop-catalog.md. CONTRIBUTING.md explains how a rule is built.
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options:
+        - Expo / React Native
+        - Flutter
+        - SwiftUI
+        - Jetpack Compose
+    validations:
+      required: true
+  - type: textarea
+    id: slop
+    attributes:
+      label: The slop pattern
+      description: The smallest code that shows it, ideally as an AI tool generated it.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: fix
+    attributes:
+      label: The fix
+      description: The same code, done the platform's way.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source URL
+      description: The page that backs the rule. Quote the relevant sentence below if you can.
+      placeholder: https://developer.apple.com/design/human-interface-guidelines/...
+    validations:
+      required: true
+  - type: dropdown
+    id: static
+    attributes:
+      label: Can it be detected statically?
+      description: From the source code alone, without running the app.
+      options:
+        - "Yes"
+        - Partly (some false positives or misses expected)
+        - "No, it belongs in the skill only"
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Where you saw it, how often, edge cases where the pattern is fine.
