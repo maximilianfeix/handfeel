@@ -1,0 +1,33 @@
+name: False positive
+description: The scanner flagged code that is fine
+labels: ["false positive"]
+body:
+  - type: input
+    id: rule
+    attributes:
+      label: Rule id
+      description: As printed by the scanner, e.g. hardcoded-color
+    validations:
+      required: true
+  - type: textarea
+    id: snippet
+    attributes:
+      label: Code snippet
+      description: The smallest snippet that still gets flagged. Include the file name and the line the scanner reported.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it's fine
+      description: Why this code should not be reported. Link docs if they help.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: handfeel version
+      description: Output of `npx handfeel --version`
+    validations:
+      required: true

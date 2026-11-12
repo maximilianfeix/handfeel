@@ -1,0 +1,39 @@
+name: Bug
+description: The scanner crashed, missed something, or the skill did something wrong
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: The command and the smallest file or project that shows it. For the skill, the prompt and the agent you used.
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: Which part
+      options:
+        - Scanner (npx handfeel)
+        - Skill (Claude Code, Codex, Cursor or another agent)
+        - Install
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: handfeel version
+      description: Output of `npx handfeel --version`
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: OS, Node version, and the agent and its version if it's about the skill.
