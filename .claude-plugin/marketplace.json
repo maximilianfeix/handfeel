@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "handfeel",
+  "owner": { "name": "Maximilian Feix", "url": "https://github.com/maximilianfeix" },
+  "metadata": { "description": "Remove the AI look from mobile apps: Expo/React Native, Flutter, SwiftUI, Jetpack Compose." },
+  "plugins": [
+    {
+      "name": "handfeel",
+      "source": "./skills",
+      "strict": false,
+      "skills": ["./handfeel"],
+      "description": "Audit and fix AI-generated mobile apps so they look and feel native. Sourced platform rules plus a static scanner with a 0-100 score.",
+      "version": "0.1.0",
+      "author": { "name": "Maximilian Feix", "url": "https://github.com/maximilianfeix" },
+      "homepage": "https://github.com/maximilianfeix/handfeel",
+      "repository": "https://github.com/maximilianfeix/handfeel",
+      "license": "MIT",
+      "category": "design",
+      "keywords": ["mobile", "react-native", "expo", "flutter", "swiftui", "jetpack-compose", "design", "unslop"]
+    }
+  ]
+}

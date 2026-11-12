@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Habitly",
+    "slug": "expo-habits",
+    "version": "1.0.0",
+    "scheme": "habitly",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.example.habitly" },
+    "android": { "package": "com.example.habitly" },
+    "web": { "bundler": "metro" },
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true }
+  }
+}

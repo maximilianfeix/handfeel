@@ -1,0 +1,4 @@
+interface:
+  display_name: "handfeel"
+  short_description: "Remove the AI look from Expo, Flutter, SwiftUI and Compose apps"
+  default_prompt: "Use $handfeel to audit this app and fix the screens that look or feel AI-generated."

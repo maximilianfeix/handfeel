@@ -54,6 +54,7 @@
   "devDependencies": {
     "@babel/types": "^7.29.14",
     "@types/node": "^18.19.130",
+    "playwright": "1.65",
     "typescript": "^5.9.3"
   }
 }
