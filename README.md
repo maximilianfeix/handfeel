@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="brand/banners/readme-banner-dark.png">
-    <img src="brand/banners/readme-banner-light.png" alt="handfeel" width="720">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/maximilianfeix/handfeel/main/brand/banners/readme-banner-dark.png">
+    <img src="https://raw.githubusercontent.com/maximilianfeix/handfeel/main/brand/banners/readme-banner-light.png" alt="handfeel" width="720">
   </picture>
 </p>
 
@@ -10,10 +10,10 @@
   An agent skill and an offline scanner for Expo / React Native, Flutter, SwiftUI and Jetpack Compose.
 </p>
 
-<p align="center">English · <a href="README.zh-CN.md">简体中文</a></p>
+<p align="center">English · <a href="https://github.com/maximilianfeix/handfeel/blob/main/README.zh-CN.md">简体中文</a></p>
 
 <p align="center">
-  <img src="docs/assets/hero.webp" alt="A generated mobile app before and after handfeel. Scanner score 51 before, 100 after." width="860">
+  <img src="https://raw.githubusercontent.com/maximilianfeix/handfeel/main/docs/assets/hero.webp" alt="A generated mobile app before and after handfeel. Scanner score 51 before, 100 after." width="860">
 </p>
 
 Generated apps fail in the same ways: indigo-to-violet gradients, frosted cards, an emoji for every icon, a new font size per label, 28-point buttons, taps that show nothing, no haptics, a centered popup where a sheet belongs, white screens at night. handfeel gives your coding agent the platform rules to fix that screen by screen, and a scanner that finds what is left and scores it from 0 to 100.
@@ -34,7 +34,7 @@ The skills and plugin routes were tested in fresh projects on 2026-11-12: Claude
 
 ## What it fixes
 
-Eight of the patterns, each taken from the [platform references](skills/handfeel/references/). Every rule there has the slop, the fix, and the quoted source.
+Eight of the patterns, each taken from the [platform references](https://github.com/maximilianfeix/handfeel/tree/main/skills/handfeel/references/). Every rule there has the slop, the fix, and the quoted source.
 
 **Taps that show nothing** (Expo / React Native, `no-press-feedback`)
 
@@ -109,14 +109,16 @@ Eight of the patterns, each taken from the [platform references](skills/handfeel
 + Text(title).font(.custom("Inter-Bold", size: 28, relativeTo: .title))
 ```
 
-The skill also covers what a scanner can't see: hierarchy, copy, empty and loading states, motion and Reduce Motion. The full list of tells is in [signs.md](skills/handfeel/references/signs.md).
+The skill also covers what a scanner can't see: hierarchy, copy, empty and loading states, motion and Reduce Motion. The full list of tells is in [signs.md](https://github.com/maximilianfeix/handfeel/blob/main/skills/handfeel/references/signs.md).
 
 ## The scanner
 
-<p align="center"><img src="docs/assets/scan.gif" alt="npx handfeel scan on a generated Expo app" width="760"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/maximilianfeix/handfeel/main/docs/assets/scan.gif" alt="npx handfeel scan on a generated Expo app" width="760"></p>
 
 ```sh
 npx handfeel scan .                 # score and every finding as file:line
+npx handfeel scan --demo            # try it on a bundled generated Flutter app
+npx handfeel scan . --card score.svg   # also write a 1200x630 score card to share
 npx handfeel scan . --json          # or --sarif (GitHub code scanning), --md (PR comments)
 npx handfeel rules                  # all 27 rules with weight and cap
 npx handfeel explain no-haptics     # why the rule exists, how to fix it, sources
@@ -162,7 +164,7 @@ A single noisy rule can't sink the score, and the breakdown shows where every po
 
 ### How real apps score
 
-Nine well-known open-source apps, scanned on 2026-11-12 at the commits in [docs/real-apps.md](docs/real-apps.md), which also explains what each remaining finding is and whether it is fair.
+Nine well-known open-source apps, scanned on 2026-11-12 at the commits in [docs/real-apps.md](https://github.com/maximilianfeix/handfeel/blob/main/docs/real-apps.md), which also explains what each remaining finding is and whether it is fair.
 
 | App | Platform | Score |
 |---|---|---:|
@@ -183,7 +185,7 @@ Before this calibration the same rules gave Bluesky 11 and Immich 22. Most of th
 Fail the build below a score, or send findings to GitHub code scanning:
 
 ```yaml
-- run: npx handfeel scan . --min-score 80
+- run: npx handfeel scan . --min-score 80   # exit 1 below 80, exit 2 if no app source is found
 - run: npx handfeel scan . --sarif > handfeel.sarif
 - uses: github/codeql-action/upload-sarif@v3
   with:
@@ -210,13 +212,13 @@ Put a comment on the line above. It works in TypeScript, Dart, Swift and Kotlin:
 | Generated apps fixed in evals | 3 | 2 | 0 | 0 |
 | Screens checked after the fix | Expo Web | Flutter web build in CI | generated app builds and runs in the iOS simulator in CI (not fixed yet) | not built in the evals |
 
-Nothing has run on a physical device. The generated SwiftUI app compiles unchanged with Xcode 26.6 and runs in the iOS simulator on a CI macOS runner ([screens](docs/evals.md#swiftui)); its fixed version and a Compose eval app are still open. Contributions welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
+Nothing has run on a physical device. The generated SwiftUI app compiles unchanged with Xcode 26.6 and runs in the iOS simulator on a CI macOS runner ([screens](https://github.com/maximilianfeix/handfeel/blob/main/docs/evals.md#swiftui)); its fixed version and a Compose eval app are still open. Contributions welcome; see [CONTRIBUTING.md](https://github.com/maximilianfeix/handfeel/blob/main/CONTRIBUTING.md).
 
 ## Where the rules come from
 
-Every rule cites at least one source, and `handfeel explain <rule>` prints them. Most come from the [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines), [Material 3](https://m3.material.io) and the Android, React Native, Expo, Flutter and SwiftUI docs, quoted in the [references](skills/handfeel/references/). All 56 source URLs are listed in [docs/sources.md](docs/sources.md).
+Every rule cites at least one source, and `handfeel explain <rule>` prints them. Most come from the [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines), [Material 3](https://m3.material.io) and the Android, React Native, Expo, Flutter and SwiftUI docs, quoted in the [references](https://github.com/maximilianfeix/handfeel/tree/main/skills/handfeel/references/). All 56 source URLs are listed in [docs/sources.md](https://github.com/maximilianfeix/handfeel/blob/main/docs/sources.md).
 
-Some tells have no official rule against them: no platform doc forbids an emoji icon or a violet accent. Those rules cite the [slop catalog](docs/slop-catalog.md) instead, a scan of 7 apps generated from plain prompts on 2026-11-12:
+Some tells have no official rule against them: no platform doc forbids an emoji icon or a violet accent. Those rules cite the [slop catalog](https://github.com/maximilianfeix/handfeel/blob/main/docs/slop-catalog.md) instead, a scan of 7 apps generated from plain prompts on 2026-11-12:
 
 | Pattern | Apps |
 |---|---:|
@@ -245,9 +247,9 @@ Five apps were generated from plain prompts (three by Claude Sonnet 5.5, two by 
 
 The fixing agents could run the scanner, so a high score partly measures that they followed it. The checks it can't game: no fix introduced a type error in code it wrote, Flutter `lib/` analyzes with 0 errors and 0 warnings before and after, and every Flutter app still builds for web in CI.
 
-![expo-budget before, after in dark mode, after in light mode](docs/assets/evals/expo-budget.png)
+![expo-budget before, after in dark mode, after in light mode](https://raw.githubusercontent.com/maximilianfeix/handfeel/main/docs/assets/evals/expo-budget.png)
 
-Method, prompts, diffs, build checks and what was not tested: [docs/evals.md](docs/evals.md).
+Method, prompts, diffs, build checks and what was not tested: [docs/evals.md](https://github.com/maximilianfeix/handfeel/blob/main/docs/evals.md).
 
 ## How it compares
 
@@ -264,7 +266,7 @@ impeccable comes closest. Its `audit` and `adapt` commands have native versions 
 
 ## Contributing
 
-New rules are the most useful contribution. A rule needs a pattern you have seen in generated code, a fix, a source, and a bad and a good fixture. [CONTRIBUTING.md](CONTRIBUTING.md) walks through it, and issues labelled [good first issue](https://github.com/maximilianfeix/handfeel/labels/good%20first%20issue) are a place to start. False positives are just as welcome: [report one](https://github.com/maximilianfeix/handfeel/issues/new?template=false-positive.yml) with the snippet.
+New rules are the most useful contribution. A rule needs a pattern you have seen in generated code, a fix, a source, and a bad and a good fixture. [CONTRIBUTING.md](https://github.com/maximilianfeix/handfeel/blob/main/CONTRIBUTING.md) walks through it, and issues labelled [good first issue](https://github.com/maximilianfeix/handfeel/labels/good%20first%20issue) are a place to start. False positives are just as welcome: [report one](https://github.com/maximilianfeix/handfeel/issues/new?template=false-positive.yml) with the snippet.
 
 ## Star history
 
@@ -272,4 +274,4 @@ New rules are the most useful contribution. A rule needs a pattern you have seen
 
 ## License
 
-[MIT](LICENSE) © Maximilian Feix
+[MIT](https://github.com/maximilianfeix/handfeel/blob/main/LICENSE) © Maximilian Feix
