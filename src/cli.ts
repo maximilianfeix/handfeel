@@ -100,9 +100,22 @@ function main(): number {
       console.error(`Unknown rule "${id ?? ''}". Run: handfeel rules`);
       return 2;
     }
+    const width = Math.min(process.stdout.columns || 80, 88) - 4;
+    const wrap = (t: string) => {
+      const lines: string[] = [];
+      let cur = '';
+      for (const w of t.split(/\s+/)) {
+        if (cur && cur.length + 1 + w.length > width) {
+          lines.push(cur);
+          cur = w;
+        } else cur = cur ? cur + ' ' + w : w;
+      }
+      if (cur) lines.push(cur);
+      return lines.map((l) => '  ' + l).join('\n');
+    };
     console.log(`\n  ${st.bold(r.id)}  ${r.title}\n`);
-    console.log(`  ${st.dim('why')}\n  ${r.why}\n`);
-    console.log(`  ${st.dim('fix')}\n  ${r.fix}\n`);
+    console.log(`  ${st.dim('why')}\n${wrap(r.why)}\n`);
+    console.log(`  ${st.dim('fix')}\n${wrap(r.fix)}\n`);
     console.log(`  ${st.dim('score')}\n  -${r.weight} per finding, at most -${r.cap}${r.free ? `, first ${r.free} free` : ''}${r.perOccurrence ? `\n  counted per ${REFERENCE_FILES} files in larger projects` : ''}\n`);
     console.log(`  ${st.dim('sources')}`);
     for (const s of r.sources) console.log(`  ${s.title}\n  ${st.dim(s.url)}`);
