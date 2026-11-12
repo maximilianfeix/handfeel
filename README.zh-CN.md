@@ -13,7 +13,7 @@
 <p align="center"><a href="README.md">English</a> · 简体中文</p>
 
 <p align="center">
-  <img src="docs/assets/hero.webp" alt="一个 AI 生成的移动 App 在 handfeel 处理前后的对比，扫描分数从 49 到 100。" width="860">
+  <img src="docs/assets/hero.webp" alt="一个 AI 生成的移动 App 在 handfeel 处理前后的对比，扫描分数从 51 到 100。" width="860">
 </p>
 
 AI 生成的 App 总是在同样的地方露馅：靛蓝到紫色的渐变、毛玻璃卡片、每个图标都用 emoji、每个标签一个新字号、28 pt 的按钮、点了没反应、没有触感反馈、该用底部弹窗的地方弹出一个居中对话框、夜里还是一片白屏。handfeel 给你的编程 Agent 一套平台规则，让它逐个页面修掉这些问题；再配一个扫描器，找出剩下的问题，并给出 0 到 100 的分数。
@@ -128,7 +128,7 @@ npx handfeel badge .                # a README badge with your score
 ```text
   handfeel 0.1.0  ·  Expo / React Native  ·  14 files
 
-   49 / 100   AI look
+   51 / 100   looks generated
 
   where the points went
     -10  purple-gradient       2 found
@@ -136,7 +136,7 @@ npx handfeel badge .                # a README badge with your score
    -9.5  hardcoded-color       19 found
      -8  no-press-feedback     4 found
      -6  glassmorphism         4 found, 1 free
-     -5  type-scale-sprawl     13 found, 8 free
+     -3  type-scale-sprawl     11 found, 8 free
      -2  icon-button-no-label  2 found
       0  gradient-overuse      2 found, 2 free
 
@@ -156,9 +156,27 @@ npx handfeel badge .                # a README badge with your score
 score = floor(100 − Σ min(cap, weight × (count − free)))
 ```
 
+超过 20 个文件的项目里，按出现次数计分的规则按每 20 个文件折算（`count × 20 / files`），因为权重是在小 App 上定的，2000 个文件的项目什么都会更多。项目级规则和关掉字体缩放不折算。
+
 单条规则再吵也拉不垮总分，明细里能看到每一分扣在哪里。90 分及以上是 "feels native"，75 分以上 "almost there"，50 分以上 "looks generated"，再往下是 "AI look"。100 分只说明扫描器没找到它认识的问题，不代表这个 App 设计得好。
 
-<!-- REAL-APP-SCORES -->
+### 真实 App 的得分
+
+九个知名开源 App，2026-11-12 按 [docs/real-apps.md](docs/real-apps.md) 中的 commit 扫描，那里也逐条说明了剩下的问题是否合理。
+
+| App | 平台 | 得分 |
+|---|---|---:|
+| [Now in Android](https://github.com/android/nowinandroid) | Jetpack Compose | 94 |
+| [Reply](https://github.com/android/compose-samples) | Jetpack Compose | 92 |
+| [Ice Cubes](https://github.com/Dimillian/IceCubesApp) | SwiftUI | 91 |
+| [Compass](https://github.com/flutter/samples) | Flutter | 87 |
+| [Wonderous](https://github.com/gskinnerTeam/flutter-wonderous-app) | Flutter | 85 |
+| [Immich](https://github.com/immich-app/immich)（移动端） | Flutter | 80 |
+| [Jetchat](https://github.com/android/compose-samples) | Jetpack Compose | 80 |
+| [Expensify](https://github.com/Expensify/App) | React Native | 79 |
+| [Bluesky](https://github.com/bluesky-social/social-app) | Expo / React Native | 76 |
+
+校准之前，同一套规则给 Bluesky 打 11 分、Immich 打 22 分，主要是误报（主题文件、SVG 插图、遮罩层）以及大项目把每条规则都扣到上限。这些都已修复并配了测试用例。剩下的大多是真问题：Expensify 在共用的 Text 组件里关掉了字体缩放，Immich 有 57 个没有 tooltip 的图标按钮。
 
 ### 接入 CI
 
@@ -203,9 +221,9 @@ score = floor(100 − Σ min(cap, weight × (count − free)))
 | 特征 | App 数 |
 |---|---:|
 | 页面里写死颜色值 | 7 / 7 |
-| 字号太多 | 6 / 7 |
 | 间距不在 4 点网格上 | 6 / 7 |
 | 点击没有视觉反馈 | 5 / 7 |
+| 字号太多 | 4 / 7 |
 | 完全没有触感反馈 | 4 / 7 |
 | 缺少深色模式或强制单一模式 | 4 / 7 |
 | 出现靛蓝到紫色的颜色 | 3 / 7 |
@@ -218,12 +236,12 @@ score = floor(100 − Σ min(cap, weight × (count − free)))
 
 | App | 平台 | 修复前 | 修复后 | 修复后（忽略注释失效） |
 |---|---|---:|---:|---:|
-| expo-budget | Expo | 49 | 100 | 100 |
-| expo-chat | Expo | 35 | 100 | 90 |
+| expo-budget | Expo | 51 | 100 | 100 |
+| expo-chat | Expo | 38 | 100 | 95 |
 | expo-habits | Expo | 71 | 100 | 100 |
-| flutter-fitness | Flutter | 28 | 100 | 100 |
-| flutter-meditation | Flutter | 58 | 100 | 100 |
-| **平均** | | **48** | **100** | **98** |
+| flutter-fitness | Flutter | 31 | 100 | 100 |
+| flutter-meditation | Flutter | 60 | 100 | 100 |
+| **平均** | | **50** | **100** | **99** |
 
 修复用的 Agent 自己也能跑扫描器，所以高分在一定程度上只说明它照着扫描器改了。分数做不了假的检查有这些：修复没有在它写的代码里引入类型错误；Flutter 的 `lib/` 修复前后都是 0 error、0 warning；所有 Flutter App 在 CI 里仍能构建 Web 版。
 

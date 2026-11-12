@@ -15,6 +15,10 @@ const REPO = new URL('../..', import.meta.url).pathname.replace(/\/$/, '');
 const H = process.env.HERO_WORK ?? REPO + '/.work/hero';
 const B = H + '/build';
 const FONT = REPO + '/brand/fonts/Bricolage.ttf';
+// Scores come from the scanner at build time, so the video can't drift from the repo.
+import { scan as hfScan } from '../../dist/src/index.js';
+const SCORE_BEFORE = hfScan('evals/apps/expo-budget/before').score;
+const SCORE_AFTER = hfScan('evals/apps/expo-budget/after').score;
 const C = { ink: '#151412', paper: '#F4F1EA', clay: '#E0592A', muted: '#A49E93', body: '#262420', edge: '#3A3631' };
 const ASPECT = 390 / 844;
 mkdirSync(B, { recursive: true });
@@ -62,9 +66,9 @@ function mainLayer(f) {
   const ss = Math.round(sw * 0.1);
   const sy = top + sh + bz + Math.round(ss * 0.45);
   const scores = `
-    <div class="t w700" style="left:${f.cx[0]}px;top:${sy}px;transform:translateX(-50%);font-size:${ss}px;color:${C.muted}">49<span style="font-size:.5em;opacity:.8"> / 100</span></div>
+    <div class="t w700" style="left:${f.cx[0]}px;top:${sy}px;transform:translateX(-50%);font-size:${ss}px;color:${C.muted}">${SCORE_BEFORE}<span style="font-size:.5em;opacity:.8"> / 100</span></div>
     <div class="t w700" style="left:${(f.cx[0] + f.cx[1]) / 2}px;top:${sy}px;transform:translateX(-50%);font-size:${ss}px;color:${C.clay}">&rarr;</div>
-    <div class="t w700" style="left:${f.cx[1]}px;top:${sy}px;transform:translateX(-50%);font-size:${ss}px;color:${C.paper}">100<span style="font-size:.5em;opacity:.8"> / 100</span></div>
+    <div class="t w700" style="left:${f.cx[1]}px;top:${sy}px;transform:translateX(-50%);font-size:${ss}px;color:${C.paper}">${SCORE_AFTER}<span style="font-size:.5em;opacity:.8"> / 100</span></div>
     <div class="t w450" style="left:${(f.cx[0] + f.cx[1]) / 2}px;top:${sy + ss * 1.32}px;transform:translateX(-50%);font-size:${Math.round(ss * 0.4)}px;color:${C.muted}">score from <span class="mono" style="color:${C.paper}">handfeel scan</span></div>`;
   let side = '';
   if (f.side) {

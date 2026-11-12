@@ -19,7 +19,7 @@ Sequence: phone in dark mode, home screen (3 s) → phone set to light mode → 
 The scores under the phones are the real output of the scanner in this repo:
 
 ```
-node dist/src/cli.js scan evals/apps/expo-budget/before --summary   # 49 / 100  AI look
+node dist/src/cli.js scan evals/apps/expo-budget/before --summary   # 51 / 100  looks generated (49 before the 2026-11-12 calibration)
 node dist/src/cli.js scan evals/apps/expo-budget/after  --summary   # 100 / 100 feels native
 ```
 
@@ -77,7 +77,7 @@ for app in before:8090 after:8091; do
 done
 
 # 3. Compose: hero (README), wide (16:9) and square (1:1) with intro and end cards
-HERO_WORK=$W node scripts/hero/build.mjs all
+HERO_WORK=$W node scripts/hero/build.mjs all   # reads both scores from the scanner
 
 # 4. Deliverables
 mkdir -p $W/wf && ffmpeg -i $W/build/hero-main.mp4 -vf fps=25 -q:v 1 $W/wf/f%04d.jpg

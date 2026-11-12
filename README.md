@@ -13,7 +13,7 @@
 <p align="center">English · <a href="README.zh-CN.md">简体中文</a></p>
 
 <p align="center">
-  <img src="docs/assets/hero.webp" alt="A generated mobile app before and after handfeel. Scanner score 49 before, 100 after." width="860">
+  <img src="docs/assets/hero.webp" alt="A generated mobile app before and after handfeel. Scanner score 51 before, 100 after." width="860">
 </p>
 
 Generated apps fail in the same ways: indigo-to-violet gradients, frosted cards, an emoji for every icon, a new font size per label, 28-point buttons, taps that show nothing, no haptics, a centered popup where a sheet belongs, white screens at night. handfeel gives your coding agent the platform rules to fix that screen by screen, and a scanner that finds what is left and scores it from 0 to 100.
@@ -128,7 +128,7 @@ It reads source files and nothing else: no network, no AI calls, no code executi
 ```text
   handfeel 0.1.0  ·  Expo / React Native  ·  14 files
 
-   49 / 100   AI look
+   51 / 100   looks generated
 
   where the points went
     -10  purple-gradient       2 found
@@ -136,7 +136,7 @@ It reads source files and nothing else: no network, no AI calls, no code executi
    -9.5  hardcoded-color       19 found
      -8  no-press-feedback     4 found
      -6  glassmorphism         4 found, 1 free
-     -5  type-scale-sprawl     13 found, 8 free
+     -3  type-scale-sprawl     11 found, 8 free
      -2  icon-button-no-label  2 found
       0  gradient-overuse      2 found, 2 free
 
@@ -156,9 +156,27 @@ Each rule has a weight per finding, a cap, and sometimes a few free findings:
 score = floor(100 − Σ min(cap, weight × (count − free)))
 ```
 
+In projects with more than 20 files, per-finding rules count findings per 20 files (`count × 20 / files`), because the weights were set on small apps and a 2,000-file app has more of everything. Project-wide rules and turned-off font scaling are not scaled.
+
 A single noisy rule can't sink the score, and the breakdown shows where every point went. 90 and up reads "feels native", 75 "almost there", 50 "looks generated", below that "AI look". A score of 100 means the scanner found nothing it knows how to find. It does not mean the app is well designed.
 
-<!-- REAL-APP-SCORES -->
+### How real apps score
+
+Nine well-known open-source apps, scanned on 2026-11-12 at the commits in [docs/real-apps.md](docs/real-apps.md), which also explains what each remaining finding is and whether it is fair.
+
+| App | Platform | Score |
+|---|---|---:|
+| [Now in Android](https://github.com/android/nowinandroid) | Jetpack Compose | 94 |
+| [Reply](https://github.com/android/compose-samples) | Jetpack Compose | 92 |
+| [Ice Cubes](https://github.com/Dimillian/IceCubesApp) | SwiftUI | 91 |
+| [Compass](https://github.com/flutter/samples) | Flutter | 87 |
+| [Wonderous](https://github.com/gskinnerTeam/flutter-wonderous-app) | Flutter | 85 |
+| [Immich](https://github.com/immich-app/immich) (mobile) | Flutter | 80 |
+| [Jetchat](https://github.com/android/compose-samples) | Jetpack Compose | 80 |
+| [Expensify](https://github.com/Expensify/App) | React Native | 79 |
+| [Bluesky](https://github.com/bluesky-social/social-app) | Expo / React Native | 76 |
+
+Before this calibration the same rules gave Bluesky 11 and Immich 22. Most of that was false positives (token files, svg artwork, backdrops) and big apps hitting every cap, both fixed with fixtures. What is left is mostly real: Expensify turns off font scaling in its shared Text component, Immich has 57 icon buttons without a tooltip.
 
 ### CI
 
@@ -203,9 +221,9 @@ Some tells have no official rule against them: no platform doc forbids an emoji 
 | Pattern | Apps |
 |---|---:|
 | Hard-coded colors in screens | 7 of 7 |
-| Too many font sizes | 6 of 7 |
 | Spacing off the 4-point grid | 6 of 7 |
 | Taps without visual feedback | 5 of 7 |
+| Too many font sizes | 4 of 7 |
 | No haptics anywhere | 4 of 7 |
 | Dark mode missing or forced | 4 of 7 |
 | Indigo-violet colors | 3 of 7 |
@@ -218,12 +236,12 @@ Five apps were generated from plain prompts (three by Claude Sonnet 5.5, two by 
 
 | App | Platform | Before | After | After, ignores disabled |
 |---|---|---:|---:|---:|
-| expo-budget | Expo | 49 | 100 | 100 |
-| expo-chat | Expo | 35 | 100 | 90 |
+| expo-budget | Expo | 51 | 100 | 100 |
+| expo-chat | Expo | 38 | 100 | 95 |
 | expo-habits | Expo | 71 | 100 | 100 |
-| flutter-fitness | Flutter | 28 | 100 | 100 |
-| flutter-meditation | Flutter | 58 | 100 | 100 |
-| **Mean** | | **48** | **100** | **98** |
+| flutter-fitness | Flutter | 31 | 100 | 100 |
+| flutter-meditation | Flutter | 60 | 100 | 100 |
+| **Mean** | | **50** | **100** | **99** |
 
 The fixing agents could run the scanner, so a high score partly measures that they followed it. The checks it can't game: no fix introduced a type error in code it wrote, Flutter `lib/` analyzes with 0 errors and 0 warnings before and after, and every Flutter app still builds for web in CI.
 
