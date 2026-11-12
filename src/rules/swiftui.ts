@@ -28,17 +28,17 @@ export const swiftFixedFont: Rule = {
   platforms: [...SW],
   weight: 1,
   cap: 8,
-  why: 'Apple: text styles "ensure support for Dynamic Type". A literal .system(size: 28) is a fixed point size; it does not follow the user’s text size the way .title does, and custom(_:fixedSize:) explicitly does not scale.',
+  why: 'Apple: built-in text styles "ensure support for Dynamic Type". .system(size: 28) is a point size that is not tied to any text style, so it does not take part in the type hierarchy the way .title does, and custom(_:fixedSize:) is documented not to scale.',
   fix: 'Use text styles (.largeTitle, .title2, .headline, .body ...) or Font.custom(name, size:, relativeTo: .body). For numbers in a fixed box, use @ScaledMetric.',
   sources: [SRC.hig_typography, SRC.swiftui_custom_fonts],
   file(f, report) {
-    for (const m of matches(/\.system\(\s*size:\s*\d/, f.masked)) report(m.index, '.system(size:) is a fixed size; prefer a text style.');
+    for (const m of matches(/\.system\(\s*size:\s*\d/, f.masked)) report(m.index, '.system(size:) is not tied to a text style; prefer .title, .body etc.');
     for (const m of matches(/\.custom\s*\(/, f.masked)) {
       const span = callSpan(f.masked, m.index + m[0].length - 1);
       if (!span) continue;
       const args = f.masked.slice(span.args[0], span.args[1]);
-      if (/fixedSize:/.test(args)) report(m.index, 'Font.custom(fixedSize:) never scales with Dynamic Type.');
-      else if (/size:/.test(args) && !/relativeTo:/.test(args)) report(m.index, 'Font.custom without relativeTo:; tie it to a text style.');
+      // custom(_:size:) scales relative to .body per Apple; only fixedSize: opts out
+      if (/fixedSize:/.test(args)) report(m.index, 'Font.custom(fixedSize:) does not scale with Dynamic Type.');
     }
   },
 };

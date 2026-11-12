@@ -259,7 +259,7 @@ export const rnFontScaling: Rule = {
   platforms: [...RN],
   weight: 4,
   cap: 12,
-  why: 'Around a quarter of iPhone users change their text size. Turning scaling off makes the app unreadable for them and is an accessibility failure, not a design choice.',
+  why: 'People who set a larger text size in system settings depend on apps following it. Turning scaling off pins every label to one size, which makes the app hard to read for exactly those people.',
   fix: 'Remove allowFontScaling={false}. If a layout breaks at large sizes, cap growth with maxFontSizeMultiplier (around 1.5-2) and let rows wrap.',
   sources: [SRC.rn_text_scaling, SRC.hig_typography],
   file(f, report) {

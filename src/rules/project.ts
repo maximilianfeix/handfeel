@@ -55,7 +55,7 @@ export const noDarkMode: Rule = {
   platforms: ['react-native', 'flutter', 'compose'],
   weight: 10,
   cap: 10,
-  why: 'Most people run their phone in dark mode at least part of the day. An app that stays white at night (or stays dark in daylight) is the clearest sign nobody tested it on a real phone.',
+  why: 'iOS and Android both let people pick dark mode (or switch it on automatically at night) and both guidelines expect apps to follow it. An app that stays white at night, or dark in daylight, shows nobody tested it on a phone.',
   fix: 'Define light and dark color roles and follow the system: useColorScheme + userInterfaceStyle "automatic" (Expo), MaterialApp(theme:, darkTheme:) (Flutter), isSystemInDarkTheme() + darkColorScheme (Compose).',
   sources: [SRC.hig_dark, SRC.expo_color_themes, SRC.rn_color_scheme, SRC.flutter_dark, SRC.compose_dark],
   project(p, report) {
