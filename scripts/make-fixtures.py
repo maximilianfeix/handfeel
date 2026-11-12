@@ -222,6 +222,9 @@ add('no-haptics', 'compose',
 add('no-dark-mode', 'compose',
     kt("@Composable fun AppTheme(c: @Composable () -> Unit) { MaterialTheme(colorScheme = lightColorScheme(), content = c) }\n"),
     kt("@Composable fun AppTheme(c: @Composable () -> Unit) { MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(), content = c) }\n"))
+add('no-dark-mode', 'compose-toggle-only',
+    kt("import androidx.compose.foundation.isSystemInDarkTheme\nclass Store { var dark = false }\n@Composable fun AppTheme(s: Store, c: @Composable () -> Unit) { MaterialTheme(colorScheme = if (s.dark) darkColorScheme() else lightColorScheme(), content = c) }\n"),
+    kt("class Store { var dark: Boolean? = null }\n@Composable fun AppTheme(s: Store, c: @Composable () -> Unit) { val d = s.dark ?: isSystemInDarkTheme(); MaterialTheme(colorScheme = if (d) darkColorScheme() else lightColorScheme(), content = c) }\n"))
 add('missing-safe-area', 'compose',
     kt("class Main : ComponentActivity() { override fun onCreate(b: Bundle?) { super.onCreate(b); setContent { Scaffold(topBar = {}) { _ -> Text(\"x\") } } } }\n"),
     kt("class Main : ComponentActivity() { override fun onCreate(b: Bundle?) { super.onCreate(b); enableEdgeToEdge(); setContent { Scaffold { p -> Text(\"x\", Modifier.padding(p)) } } } }\n"))
