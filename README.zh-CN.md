@@ -6,31 +6,38 @@
 </p>
 
 <p align="center">
-  <b>App 是 AI 写的，handfeel 让它用起来像一个真正的手机 App。</b><br>
-  一个 Agent Skill 加一个离线扫描器，支持 Expo / React Native、Flutter、SwiftUI 和 Jetpack Compose。
+  <b>找出你的手机 App 里的"AI 味"。</b><br>
+  一个给 Expo / React Native、Flutter、SwiftUI 和 Jetpack Compose 代码打 0 到 100 分的扫描器，<br>
+  外加一个能把问题修掉的 Agent Skill。
 </p>
 
 <p align="center"><a href="README.md">English</a> · 简体中文</p>
 
 <p align="center">
-  <img src="docs/assets/hero.webp" alt="一个 AI 生成的移动 App 在 handfeel 处理前后的对比，扫描分数从 51 到 100。" width="860">
+  <img src="docs/assets/hero-fitness.webp" alt="一个由 Claude 生成的健身 App：扫描得分 31，标出四处问题（字号过多、扫描渐变圆环、毛玻璃边框、紫色卡片渐变）。同一个 App 经 handfeel 修复后得分 100。" width="860">
 </p>
 
-AI 生成的 App 总是在同样的地方露馅：靛蓝到紫色的渐变、毛玻璃卡片、每个图标都用 emoji、每个标签一个新字号、28 pt 的按钮、点了没反应、没有触感反馈、该用底部弹窗的地方弹出一个居中对话框、夜里还是一片白屏。handfeel 给你的编程 Agent 一套平台规则，让它逐个页面修掉这些问题；再配一个扫描器，找出剩下的问题，并给出 0 到 100 的分数。
+```sh
+npx handfeel scan .          # 每条问题都带 file:line，不调用 AI，不联网
+npx handfeel scan --demo     # 用一个 Claude 生成的 App 先试试
+```
 
-## 安装
+| Now in Android | Reply | Ice Cubes | Compass | Wonderous | Bluesky | Claude 和 Codex 生成的 App |
+|---:|---:|---:|---:|---:|---:|---:|
+| 94 | 92 | 91 | 87 | 85 | 76 | 31 到 79 |
+
+AI 生成的 App 总在同样的地方出问题：点了没反馈、28 pt 的按钮、没有触感反馈、每个标签一个字号、夜里一片白屏，还有靛蓝色渐变。每条规则都引用 Apple HIG、Material 3 或框架文档，扫描器也[在九个开源 App 上校准过](docs/real-apps.md)，做得好的 App 不会被误伤。
+
+## 让 Agent 来修
 
 ```sh
 npx skills add maximilianfeix/handfeel        # Claude Code, Codex and other agents that read .agents/skills
 npx handfeel init cursor                      # Cursor: writes .cursor/rules/handfeel.mdc
-npx handfeel scan .                           # just the scanner, no agent needed
 ```
 
 也可以作为 Claude Code 插件安装：先 `/plugin marketplace add maximilianfeix/handfeel`，再 `/plugin install handfeel@handfeel`。
 
-装好后对 Agent 说 *"audit this app with handfeel"*（只出报告，每条问题带 `file:line`），或者 *"use handfeel to fix the screens"*（小步修改，一次一个页面、一个环节：触控、结构、颜色、字体、图标、间距、平台细节）。它不会删除任何功能、页面或流程。
-
-skills 和插件两种方式已于 2026-11-12 在全新项目里实测：Claude Code 会自动识别这个 Skill，Codex 能列出它。按 Cursor 文档，Cursor 也会读取 `.agents/skills`，但两种 Cursor 安装方式都还没有在 Cursor 里实际跑过。
+装好后对 Agent 说 *"audit this app with handfeel"*（只出报告，每条问题带 `file:line`），或者 *"use handfeel to fix the screens"*（小步修改，一次一个页面、一个环节：触控、结构、颜色、字体、图标、间距、平台细节）。它不会删除任何功能、页面或流程，改导航或加依赖之前会先问你。
 
 ## 修什么
 
@@ -117,11 +124,15 @@ skills 和插件两种方式已于 2026-11-12 在全新项目里实测：Claude 
 
 ```sh
 npx handfeel scan .                 # score and every finding as file:line
+npx handfeel scan --demo            # try it on a bundled generated Flutter app
+npx handfeel scan . --card score.svg   # also write a 1200x630 score card to share
 npx handfeel scan . --json          # or --sarif (GitHub code scanning), --md (PR comments)
 npx handfeel rules                  # all 27 rules with weight and cap
 npx handfeel explain no-haptics     # why the rule exists, how to fix it, sources
 npx handfeel badge .                # a README badge with your score
 ```
+
+想分享结果：`--card score.svg` 会生成一张 1200x630 的卡片，写着分数和扣分最多的三条规则；`npx handfeel badge .` 会输出一个可以放进 README 的徽章，比如 [![handfeel score](https://img.shields.io/badge/handfeel-94%2F100-2f7d4f)](https://github.com/maximilianfeix/handfeel)。
 
 它只读源码文件：不联网、不调用 AI、不执行任何代码。React Native 代码用 Babel AST 解析，Dart、Swift 和 Kotlin 用带测试的模式规则。同样的代码，每次扫出来的分数都一样。
 
@@ -206,11 +217,12 @@ score = floor(100 − Σ min(cap, weight × (count − free)))
 |---|---|---|---|---|
 | 扫描规则数 | 21 | 20 | 14 | 16 |
 | Skill：审查（audit） | 支持 | 支持 | 支持 | 支持 |
-| Skill：修复（fix） | 支持，已评测 | 支持，已评测 | 规则已写好，未评测 | 规则已写好，未评测 |
-| 评测中修复的生成 App | 3 | 2 | 0 | 0 |
-| 修复后检查页面的方式 | Expo Web | CI 中的 Flutter Web 构建 | 生成的 App 在 CI 的 iOS 模拟器中可构建并运行（尚未修复） | 评测中未构建 |
+| Skill：修复（fix） | 支持，已评测 | 支持，已评测 | 支持，已评测 | 支持，已评测 |
+| 评测中修复的生成 App | 3 | 2 | 1 | 1 |
+| 修复后的检查 | 类型检查、Expo Web | `flutter analyze`、CI 中的 Web 构建 | CI 中 Xcode 构建、iOS 模拟器 | CI 中 Gradle 构建、Android 模拟器 |
+| 校准用的真实 App | 2 | 3 | 1 | 3 |
 
-目前还没有在真机上跑过。生成的 SwiftUI App 未经修改即可用 Xcode 26.6 编译，并在 CI 的 macOS runner 上的 iOS 模拟器中运行（[截图](docs/evals.md#swiftui)）；它的修复版本和 Compose 评测 App 还没做。欢迎贡献，见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+目前还没有在真机上跑过。两种安装方式已于 2026-11-12 在全新项目里实测：Claude Code 会自动识别这个 Skill，Codex 能列出它；按 Cursor 文档，Cursor 也会读取 `.agents/skills`，但还没在 Cursor 里实际跑过。欢迎反馈真机和 Cursor 的使用情况，见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 规则从哪来
 
@@ -232,22 +244,24 @@ score = floor(100 − Σ min(cap, weight × (count − free)))
 
 ## 评测
 
-用普通提示词生成了 5 个 App（3 个由 Claude Sonnet 5.5 生成，2 个由 Codex 中的 gpt-6.1-sol 生成）。然后给每个 App 开一个全新的 Agent，只告诉它用这个 Skill 的 fix 模式，不给其他上下文。修复后的结果会再扫一遍，这次关掉所有忽略注释，被注释压下去的问题照样计分。
+七个 App 用普通的提示词生成，每个平台至少一个（四个由 Claude Sonnet 5.5 生成，三个由 Codex 里的 gpt-6.1-sol 生成）。然后由一个全新的 Agent 以 fix 模式对每个 App 运行这个 Skill，不给其他上下文。最后一列是把所有忽略注释关掉后重新打的分，被压下去的问题照样计分。
 
-| App | 平台 | 修复前 | 修复后 | 修复后（忽略注释失效） |
+| App | 平台 | 修复前 | 修复后 | 关掉忽略注释后 |
 |---|---|---:|---:|---:|
 | expo-budget | Expo | 51 | 100 | 100 |
 | expo-chat | Expo | 38 | 100 | 95 |
 | expo-habits | Expo | 71 | 100 | 100 |
 | flutter-fitness | Flutter | 31 | 100 | 100 |
 | flutter-meditation | Flutter | 60 | 100 | 100 |
-| **平均** | | **50** | **100** | **99** |
+| swiftui-recipes | SwiftUI | 79 | 100 | 100 |
+| compose-tasks | Jetpack Compose | 77 | 100 | 100 |
+| **平均** | | **58** | **100** | **99** |
 
-修复用的 Agent 自己也能跑扫描器，所以高分在一定程度上只说明它照着扫描器改了。分数做不了假的检查有这些：修复没有在它写的代码里引入类型错误；Flutter 的 `lib/` 修复前后都是 0 error、0 warning；所有 Flutter App 在 CI 里仍能构建 Web 版。
+修复的 Agent 能运行扫描器，所以高分在一定程度上只说明它照着扫描器改了。扫描器作不了弊的检查有：修复没有在它写的代码里引入类型错误；Flutter 的 `lib/` 修复前后都是 0 个错误、0 个警告；SwiftUI App 在 CI 里用 Xcode 构建成功，Compose App 用 Gradle 构建成功；所有 App 都在浏览器、模拟器或 Android 模拟器里以浅色和深色模式打开看过。
 
-![expo-budget 修复前、修复后深色模式、修复后浅色模式](docs/assets/evals/expo-budget.png)
+![compose-tasks 修复前、修复后浅色、修复后深色](docs/assets/evals/compose-tasks.png)
 
-方法、提示词、diff、构建检查以及没测到的部分，见 [docs/evals.md](docs/evals.md)。
+方法、提示词、diff、构建检查、每个 App 的截图以及没测到的部分，见 [docs/evals.md](docs/evals.md)。
 
 ## 和同类项目比较
 
@@ -258,9 +272,13 @@ handfeel 的起点是 [heydamir 的 Unslopping 系列](https://x.com/heydamir/st
 | [unslop](https://github.com/heydamir/unslop) | Web 界面：仪表盘、落地页 | 无 | 无 |
 | [impeccable](https://github.com/pbakaus/impeccable) | Web，附带原生审查指南 | `npx impeccable detect`，仅限 Web | 无（`critique` 是由模型打分的评审） |
 | [hallmark](https://github.com/Nutlope/hallmark) | Web 界面和落地页，50 套主题 | `sloplint`（静态检查，可选浏览器渲染），仅 Web | 无 |
+| [Appllama skills](https://github.com/Appllama/appllama-skills) | Expo / React Native 设计，付费 MCP 组件库 | 无 | 无 |
+| [unslopovich](https://github.com/erkamyaman/unslopovich) | 移动端 Skill，覆盖多种技术栈 | 无（`npx` 用来安装 Skill） | 无 |
+| [flutter-unslop](https://github.com/MBotirjonDev/flutter-unslop) | Flutter | 有，仅 Flutter | 0-100 slop 分 |
+| [unslop-design](https://github.com/marcosnovo/unslop-design) | SwiftUI、Compose、Web | Python 脚本 | 0-100 |
 | handfeel | Expo / RN、Flutter、SwiftUI、Compose | `npx handfeel scan`，扫描原生源码 | 0-100 |
 
-impeccable 和 handfeel 最接近。它的 `audit` 和 `adapt` 命令有原生版本，可以读 SwiftUI、Compose、React Native 和 Flutter 源码，但它的 README 写明 ["the detector, live mode … and the edit hook stay web-only"](https://github.com/pbakaus/impeccable#good-to-know)。做 Web 就用这三个；做手机 App，handfeel 的扫描器和规则可以和 impeccable 的原生审查一起用。
+impeccable 和 handfeel 最接近。它的 `audit` 和 `adapt` 命令有原生版本，可以读 SwiftUI、Compose、React Native 和 Flutter 源码，但它的 README 写明 ["the detector, live mode … and the edit hook stay web-only"](https://github.com/pbakaus/impeccable#good-to-know)。做 Web 就用这三个。做手机 App，上面这些 Skill 都值得一用；handfeel 多出来的是：一个覆盖四种技术栈的确定性扫描器，在九个开源 App 上校准过，每个发现的误报都有对应的测试用例，而且每条规则都标明出处。
 
 ## 参与贡献
 

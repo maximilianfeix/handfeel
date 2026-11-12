@@ -61,6 +61,9 @@ add('purple-gradient', 'flutter',
     fl("const g = LinearGradient(colors: [AppColors.violet, AppColors.pink]);\n",
        {"lib/theme.dart": "import 'package:flutter/material.dart';\nclass AppColors {\n  static const violet = Color(0xFF7C5CFF);\n  static const pink = Color(0xFFFF5C93);\n}\n"}),
     fl("const g = LinearGradient(colors: [Color(0xFF0F3D3E), Color(0xFF1F6F5C)]);\n"))
+add('purple-gradient', 'flutter-data-list',
+    fl("class Workout { const Workout(this.name, {required this.colors}); final String name; final List<Color> colors; }\nconst push = Workout('Push Day', colors: [Color(0xFF7C5CFF), Color(0xFFB04CFF)]);\nWidget card(Workout w) => Container(decoration: BoxDecoration(gradient: LinearGradient(colors: w.colors)));\n"),
+    fl("class Workout { const Workout(this.name, {required this.tone}); final String name; final Color tone; }\nconst push = Workout('Push Day', tone: Color(0xFFE07A2A));\nconst palette = [Color(0xFF7C5CFF), Color(0xFFE07A2A), Color(0xFF2F6F5E), Color(0xFF1F6F8C)];\n"))
 add('purple-gradient', 'swiftui',
     sw('struct V: View { var body: some View { LinearGradient(colors: [Color(hex: "#8B5CF6"), Color(hex: "#EC4899")], startPoint: .top, endPoint: .bottom) } }\n'),
     sw('struct V: View { var body: some View { Color(.systemBackground) } }\n'))

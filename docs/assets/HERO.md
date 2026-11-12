@@ -90,3 +90,42 @@ ffmpeg -ss 4.0 -i $W/build/wide-main.mp4 -frames:v 1 docs/assets/hero-still.png
 `record.mjs` loads the app, visits Add, Budgets and Home once (so later taps do not hit a first-load flash), then captures full-resolution screenshots in a loop (about 28 per second) while it runs the timeline, stamping each frame with its capture time. `tovideo.mjs` resamples those frames to a constant 30 fps. `build.mjs` renders the chrome with Playwright and does the rest in one ffmpeg filter graph per format: dark take, 0.3 s cross-fade to the light take, cross-fade back to dark (so the WebP loops without a jump), scale, rounded-corner mask, overlay.
 
 The `"The method or property Haptic.selectionAsync is not available on web"` errors in the console come from both apps calling `expo-haptics` on web. They are unhandled promise rejections and do not stop navigation or selection.
+
+## Fitness hero (`hero-fitness.webp`, `hero-fitness-still.png`)
+
+| File | What | Size |
+|---|---|---|
+| `hero-fitness.webp` | README hero. Animated WebP, 1200×924, 9.2 s, loops, no intro card | 348 KB |
+| `hero-fitness-still.png` | Final state with file:line under each callout and the logo, 1600×900, for social cards | 241 KB |
+
+Two phones, both dark, so the eye compares design and not theme:
+
+- **Generated**: `evals/apps/flutter-fitness/before`, built from a plain prompt by Claude Sonnet. The app is dark-only, so its `home.png` is dark.
+- **After handfeel fix**: `evals/apps/flutter-fitness/after` (see `evals/apps/flutter-fitness/FIX-REPORT.md`), its `home-dark.png`.
+
+Sequence: four numbered callouts appear on the generated phone one by one (0.6 to 2.8 s), the score under the fixed phone counts from the `before` score to the `after` score (3.4 to 5.0 s), hold, then the callouts and the counter fade out so the last frame matches the first.
+
+Each callout stands for findings of `node dist/src/cli.js scan evals/apps/flutter-fitness/before`. The script looks every one of them up in the live scan and stops if one is missing:
+
+| # | Label | Points at | Findings |
+|---|---|---|---|
+| 1 | `type-scale-sprawl`, 13 font sizes | "Good morning" / "Alex" header (15, 30 and the 13 of the streak pill) | `home_screen.dart:39`, `:43`, `:63` |
+| 2 | `gradient-overuse`, sweep gradient ring | progress ring | `progress_ring.dart:61` (also flagged `purple-gradient` there; the violet stop does not show in the web render, so the label does not claim it) |
+| 3 | `glassmorphism`, frosted white borders | stat chips and the progress card | `stat_chip.dart:26`, `home_screen.dart:75` |
+| 4 | `hardcoded-color`, literal violet gradient | "Push Day" card | `data.dart:13` (`#7C5CFF`, `#B04CFF`), drawn by the gradient at `workout_card.dart:28` (`gradient-overuse`) |
+
+The card's coloured glow shadow and the missing press feedback are real but get no callout: the glow has no scanner rule, and a press can't be seen in a still render.
+
+Screens are the Flutter web renders from CI (Flutter 3.50.0, viewport 390×844 at 3×, 1170×2532 PNG), scaled with Lanczos and corner-masked; nothing inside them was retouched. Callout outlines are drawn on top of the screen as strokes only. Scores and verdicts are read from the scanner at build time (`dist/src/index.js`).
+
+```sh
+npm run build                                # dist/ for the scanner
+# CI renders: flutter-fitness-before/**/home.png and flutter-fitness-after/**/home-dark.png
+HERO_FITNESS_SHOTS=.work/ci2 HERO_WORK=$W node scripts/hero/fitness.mjs all   # or: webp | still
+```
+
+`fitness.mjs` renders the layout as HTML with Playwright (Bricolage from `brand/fonts`), screenshots one PNG per distinct animation state at 25 fps (unchanged frames only extend the previous frame's duration), and encodes them with `img2webp -lossy -q 90 -m 6`. It writes straight to `docs/assets/`.
+
+### Fitness hero as video (for X)
+
+X does not take animated WebP, so `hero-fitness.mp4` (1920x1080) and `hero-fitness-square.mp4` (1080x1080) are screen recordings of `hero-fitness.webp` playing in headless Chromium (Playwright `recordVideo`, 1200x924), converted with ffmpeg: H.264, CRF 18, 30 fps, padded with the WebP's own background colour (#141210). No frame is edited.
