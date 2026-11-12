@@ -53,8 +53,8 @@ const CALLOUTS = [
     box: [44, 880, 1082, 356, 66],
   },
   {
-    rule: 'hardcoded-color', label: 'literal violet gradient',
-    src: [['hardcoded-color', 'lib/data.dart', 13], ['gradient-overuse', 'lib/widgets/workout_card.dart', 28]],
+    rule: 'purple-gradient', label: 'violet card gradient',
+    src: [['purple-gradient', 'lib/data.dart', 13], ['gradient-overuse', 'lib/widgets/workout_card.dart', 28]],
     box: [44, 1420, 1082, 600, 96],
   },
 ];
