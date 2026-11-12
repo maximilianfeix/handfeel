@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [before]
+        variant: [before, after]
     steps:
       - uses: actions/checkout@v4
       - name: Generate an Xcode project
