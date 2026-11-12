@@ -10,7 +10,7 @@ Sample: 7 apps generated on 2026-11-12. Prompts and generator models are in `eva
 | expo-budget | react-native | Claude Sonnet 5.5 (claude-sonnet-5-5) via Claude Code subagent | 49 |
 | expo-chat | react-native | OpenAI gpt-6.1-sol via Codex CLI 0.163.0 (reasoning effort medium) | 35 |
 | expo-habits | react-native | Claude Sonnet 5.5 (claude-sonnet-5-5) via Claude Code subagent | 71 |
-| flutter-fitness | flutter | Claude Sonnet 5.5 (claude-sonnet-5-5) via Claude Code subagent | 38 |
+| flutter-fitness | flutter | Claude Sonnet 5.5 (claude-sonnet-5-5) via Claude Code subagent | 28 |
 | flutter-meditation | flutter | OpenAI gpt-6.1-sol via Codex CLI 0.163.0 (reasoning effort medium) | 58 |
 | swiftui-recipes | swiftui | Claude Sonnet 5.5 (claude-sonnet-5-5) via Claude Code subagent | 79 |
 
@@ -23,11 +23,11 @@ Sample: 7 apps generated on 2026-11-12. Prompts and generator models are in `eva
 | `off-grid-spacing` (Spacing off the 4-point grid) | 6 of 7 | 52 |
 | `no-press-feedback` (Taps without visual feedback) | 5 of 7 | 30 |
 | `no-haptics` (No haptic feedback anywhere) | 4 of 7 | 4 |
+| `no-dark-mode` (Dark mode not supported) | 4 of 7 | 4 |
 | `type-outside-scale` (Text sizes outside the type scale) | 3 of 7 | 45 |
 | `glassmorphism` (Glassmorphism on content) | 3 of 7 | 13 |
 | `emoji-as-icon` (Emoji used as icons) | 3 of 7 | 10 |
 | `gradient-overuse` (Gradients everywhere) | 3 of 7 | 9 |
-| `no-dark-mode` (Dark mode not supported) | 3 of 7 | 3 |
 | `touch-target-too-small` (Touch targets under 44 pt) | 2 of 7 | 5 |
 | `purple-gradient` (Indigo-to-violet gradients) | 2 of 7 | 4 |
 | `no-platform-adaptation` (Same UI on iOS and Android) | 2 of 7 | 2 |

@@ -16,9 +16,11 @@ Does `handfeel fix` make generated apps better, and does it break them? Measured
 | expo-budget | Expo | Claude Sonnet 5.5 | 49 | 100 | 100 | 13 files, +369 −189 |
 | expo-chat | Expo | gpt-6.1-sol (Codex) | 35 | 100 | 90 | 17 files, +388 −239 |
 | expo-habits | Expo | Claude Sonnet 5.5 | 71 | 100 | 100 | 8 files, +431 −164 |
-| flutter-fitness | Flutter | Claude Sonnet 5.5 | 38 | 100 | 100 | 13 files, +621 −560 |
+| flutter-fitness | Flutter | Claude Sonnet 5.5 | 28 | 100 | 100 | 13 files, +621 −560 |
 | flutter-meditation | Flutter | gpt-6.1-sol (Codex) | 58 | 100 | 100 | 9 files, +226 −132 |
-| **Mean** | | | **50** | **100** | **98** | |
+| **Mean** | | | **48** | **100** | **98** | |
+
+Scores are recomputed with the current scanner every time `scripts/evals.mjs` runs. flutter-fitness showed 38 when its agent started; a later fix to `no-dark-mode` (a single dark theme used to count as dark-mode support) lowered the before score to 28. The after scores did not change.
 
 A score of 100 means the scanner finds nothing it knows how to find. It does not mean the app is well designed. The scanner has 27 rules; hierarchy, copy, motion and empty states are left to the skill and to people.
 

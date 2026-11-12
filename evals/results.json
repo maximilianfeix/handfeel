@@ -91,10 +91,11 @@
       "app": "flutter-fitness",
       "platform": "flutter",
       "files": 13,
-      "before": 38,
+      "before": 28,
       "beforeBreakdown": [
         "hardcoded-color -10",
         "purple-gradient -10",
+        "no-dark-mode -10",
         "glassmorphism -8",
         "no-haptics -6",
         "type-outside-scale -5",
