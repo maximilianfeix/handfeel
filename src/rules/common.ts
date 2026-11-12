@@ -88,7 +88,7 @@ export const defaultAiAccent: Rule = {
   platforms: [...ALL],
   weight: 3,
   cap: 6,
-  why: 'Tailwind indigo/violet 500-600, #667eea → #764ba2 and #6C63FF are what a model picks when nobody picked a brand color. They are the single most common accent in generated apps (see the slop catalog), so the app looks like every other generated app before anyone reads a word.',
+  why: 'Tailwind indigo/violet 500-600, #667eea → #764ba2 and #6C63FF are stock values from templates and UI kits that generated code reuses when nobody picked a brand color. In the slop catalog sample, 3 of 7 generated apps used a color from this indigo-violet band without being asked to.',
   fix: 'Choose a brand color on purpose. If you keep a purple, change hue, lightness or saturation so it is yours, and define it once as a token.',
   sources: [SRC.catalog],
   file(f, report) {
@@ -189,7 +189,7 @@ export const purpleGradient: Rule = {
   platforms: [...ALL],
   weight: 5,
   cap: 10,
-  why: 'The blue-violet-purple gradient on hero cards, buttons and avatars is the most recognisable mark of a generated UI. Native apps from Apple and Google use flat semantic fills for controls and keep gradients for artwork.',
+  why: 'Generated apps put a blue-violet gradient on hero cards, buttons and avatars without being asked (2 of 7 apps in the slop catalog). It reads as a template. Platform guidance gives controls and surfaces semantic color roles; gradients belong to artwork.',
   fix: 'Use a flat fill from your color roles for cards and buttons. Keep gradients for content (artwork, charts) and never for text.',
   sources: [SRC.hig_color, SRC.m3_color_roles, SRC.catalog],
   file(f, report, p) {

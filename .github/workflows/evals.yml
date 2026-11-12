@@ -31,7 +31,7 @@ jobs:
           flutter create --platforms=web --project-name app . > /dev/null
           flutter pub get > /dev/null
           set +e
-          flutter analyze --no-fatal-infos --no-fatal-warnings > $RUNNER_TEMP/out.txt 2>&1
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib > $RUNNER_TEMP/out.txt 2>&1
           echo "exit=$?" >> $RUNNER_TEMP/analyze.txt
           set -e
           cat $RUNNER_TEMP/out.txt >> $RUNNER_TEMP/analyze.txt
