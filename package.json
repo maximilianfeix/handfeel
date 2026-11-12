@@ -21,9 +21,9 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "test": "npm run build && node --test dist/test/",
-    "lint": "tsc -p tsconfig.json --noEmit && node scripts/check-rules.mjs",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
+    "test": "npm run build && node scripts/run-tests.mjs",
+    "lint": "tsc -p tsconfig.json && node scripts/check-rules.mjs",
     "docs": "npm run build && node scripts/gen-rules-doc.mjs",
     "prepack": "npm run build"
   },

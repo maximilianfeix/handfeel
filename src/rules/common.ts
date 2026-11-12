@@ -237,7 +237,13 @@ export const glassmorphism: Rule = {
       walk(f.ast.program, (n: any) => {
         if (n.type === 'JSXOpeningElement' && n.name.type === 'JSXIdentifier' && n.name.name === 'BlurView') report(n.start, 'BlurView used as a surface.');
       });
-      for (const s of f.strings) if (s.kind === 'StringLiteral' && translucentWhite(parseCssColor(s.value))) report(s.start, `${s.value} is a frosted-glass fill.`);
+      for (const s of f.strings) {
+        if (s.kind !== 'StringLiteral' || !translucentWhite(parseCssColor(s.value))) continue;
+        // a ripple or pressed-state color is feedback, not a surface
+        const before = f.code.slice(Math.max(0, s.start - 80), s.start);
+        if (/ripple|pressed|highlight|underlay/i.test(before)) continue;
+        report(s.start, `${s.value} is a frosted-glass fill.`);
+      }
       return;
     }
     if (f.lang === 'dart') {
