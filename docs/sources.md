@@ -19,6 +19,7 @@ Every URL the scanner cites, from `npx handfeel rules --json`. All links checked
 | [Apple HIG: Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets) | `modal-instead-of-sheet` | 2026-11-12 |
 | [Apple HIG: Modality](https://developer.apple.com/design/human-interface-guidelines/modality) | `modal-instead-of-sheet` | 2026-11-12 |
 | [Apple HIG: Tab bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars) | `hamburger-navigation` | 2026-11-12 |
+| [SwiftUI: Color.red, a context-dependent system color](https://developer.apple.com/documentation/swiftui/color/red) | `hardcoded-color` | 2026-11-12 |
 | [SwiftUI: Applying custom fonts to text](https://developer.apple.com/documentation/swiftui/applying-custom-fonts-to-text) | `fixed-font-size` | 2026-11-12 |
 | [SwiftUI: NavigationView (deprecated)](https://developer.apple.com/documentation/swiftui/navigationview) | `deprecated-navigation-view` | 2026-11-12 |
 | [Apple HIG: Dark Mode](https://developer.apple.com/design/human-interface-guidelines/dark-mode) | `forced-color-scheme`, `no-dark-mode` | 2026-11-12 |
@@ -89,5 +90,46 @@ Every URL the scanner cites, from `npx handfeel rules --json`. All links checked
 | Source | Rules | Checked |
 |---|---|---|
 | [handfeel slop catalog (measured on generated apps)](https://github.com/maximilianfeix/handfeel/blob/main/docs/slop-catalog.md) | `emoji-as-icon`, `default-ai-accent`, `purple-gradient` | 2026-11-12 |
+
+Material 3 pages on m3.material.io render with JavaScript, so their text could not be fetched and checked word for word. The platform references quote the same guidance from developer.android.com and the [material-components-android docs](https://github.com/material-components/material-components-android/tree/master/docs/components) instead.
+
+## Sources cited only by the references
+
+These back the rules marked "not scanned" in the platform references. All checked 2026-11-12.
+
+| Source | Used for |
+|---|---|
+| [Apple HIG: Gestures](https://developer.apple.com/design/human-interface-guidelines/gestures) | Back button and edge swipe |
+| [Apple HIG: Virtual keyboards](https://developer.apple.com/design/human-interface-guidelines/virtual-keyboards) | Keyboard type and Return key |
+| [Apple HIG: Writing](https://developer.apple.com/design/human-interface-guidelines/writing) | Empty states and error messages |
+| [Apple HIG: Launching](https://developer.apple.com/design/human-interface-guidelines/launching) | Launch screens |
+| [Apple HIG: App icons](https://developer.apple.com/design/human-interface-guidelines/app-icons) | Icon text, appearance variants |
+| [Apple HIG: Right to left](https://developer.apple.com/design/human-interface-guidelines/right-to-left) | RTL layout |
+| [SwiftUI: Font.custom(_:fixedSize:)](https://developer.apple.com/documentation/swiftui/font/custom(_:fixedsize:)) | Fixed-size custom fonts |
+| [SwiftUI: AsyncImage](https://developer.apple.com/documentation/swiftui/asyncimage) | Image placeholders |
+| [SwiftUI: DynamicTypeSize.isAccessibilitySize](https://developer.apple.com/documentation/swiftui/dynamictypesize/isaccessibilitysize) | Large text layouts |
+| [Android 14: Non-linear font scaling to 200%](https://developer.android.com/about/versions/14/features#non-linear-font-scaling) | Large text layouts |
+| [Android 16 behavior changes](https://developer.android.com/about/versions/16/behavior-changes-16) | Edge-to-edge, predictive back |
+| [Compose: Set up predictive back](https://developer.android.com/develop/ui/compose/system/predictive-back-setup) | Predictive back |
+| [Compose: Autofill](https://developer.android.com/develop/ui/compose/text/autofill) | Autofill content types |
+| [Compose: Icons.AutoMirrored](https://developer.android.com/reference/kotlin/androidx/compose/material/icons/Icons.AutoMirrored) | RTL icons |
+| [Android: Splash screens](https://developer.android.com/guide/topics/ui/splash-screen) | Splash screens |
+| [Android: Adaptive icons](https://developer.android.com/develop/ui/views/launch/icon_design_adaptive) | Themed icons |
+| [React Native: TextInput](https://reactnative.dev/docs/textinput) | Keyboard type, autofill, return key |
+| [React Native: BackHandler](https://reactnative.dev/docs/backhandler) | Android back |
+| [React Native: View style props (boxShadow)](https://reactnative.dev/docs/view-style-props#boxshadow) | `boxShadow` needs the New Architecture |
+| [React Native: Layout props](https://reactnative.dev/docs/layout-props) | Start and end padding |
+| [React Navigation: Native stack](https://reactnavigation.org/docs/native-stack-navigator) | `gestureEnabled` |
+| [Expo: New Architecture](https://docs.expo.dev/guides/new-architecture/) | SDK 55+ always on the New Architecture |
+| [Expo: App config](https://docs.expo.dev/versions/latest/config/app/) | `predictiveBackGestureEnabled`, icons |
+| [Expo: SplashScreen](https://docs.expo.dev/versions/latest/sdk/splash-screen/) | Splash screen |
+| [Expo: Splash screen and app icon](https://docs.expo.dev/develop/user-interface/splash-screen-and-app-icon/) | Icon sizes, adaptive icons |
+| [Flutter: Add the predictive back gesture](https://docs.flutter.dev/platform-integration/android/predictive-back) | `PopScope`, manifest flag |
+| [Flutter: Wide gamut Color migration](https://docs.flutter.dev/release/breaking-changes/wide-gamut-framework) | `withOpacity` deprecated in 3.27 |
+| [Flutter: New ColorScheme roles](https://docs.flutter.dev/release/breaking-changes/new-color-scheme-roles) | `surfaceContainer*` since 3.22 |
+| [Flutter: Material 3 by default](https://docs.flutter.dev/release/breaking-changes/material-3-default) | M3 default since 3.16 |
+| [Flutter: TextField.autofillHints](https://api.flutter.dev/flutter/material/TextField/autofillHints.html) | Autofill |
+| [Flutter: FadeInImage](https://api.flutter.dev/flutter/widgets/FadeInImage-class.html) | Image placeholders |
+| [Flutter: EdgeInsetsDirectional](https://api.flutter.dev/flutter/painting/EdgeInsetsDirectional-class.html) | RTL padding |
 
 The slop catalog is the source for the judgement rules: patterns no platform doc rules out, measured in apps generated from plain prompts. See [slop-catalog.md](slop-catalog.md).

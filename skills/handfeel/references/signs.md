@@ -15,11 +15,13 @@ The tells, across all four platforms, in pass order. The id in brackets is what 
 - **Centered popups for tasks** [modal-instead-of-sheet]. A dimmed overlay with a card and a text field. Use a sheet.
 - **Content under the notch, status bar or home indicator** [missing-safe-area, rn-safe-area-view]. Or the reverse (manual): hard-coded `paddingTop: 44` / `.padding(.top, 50)` to dodge the notch.
 - **Keyboard covers the field** [keyboard-covers-input].
+- **Wrong keyboard, no autofill** (manual): the text keyboard for an email or amount, a password field the password manager ignores, a Return key that does nothing.
+- **Back that leaves the app** (manual): screens swapped from state instead of pushed as routes, a hand-made back arrow, the iOS edge swipe turned off, `WillPopScope` or `onBackPressed` where predictive back is expected.
 - **Web layout on a phone** (manual). A centered hero headline with a gradient "Get started" button, a footer, a max-width column, horizontal scrolling chips that do nothing.
 
 ## Color
 
-- **Indigo-to-violet gradients** [purple-gradient] and the default accents (#6366F1, #8B5CF6, #7C3AED, #667EEA → #764BA2, #6C63FF) [default-ai-accent].
+- **Indigo-to-violet gradients** [purple-gradient] and the default accents (#6366F1, #8B5CF6, #7C3AED, #667EEA to #764BA2, #6C63FF) [default-ai-accent].
 - **Gradients on everything** [gradient-overuse]: hero card, avatar ring, buttons, progress bars.
 - **Glass cards** [glassmorphism]: blur plus `rgba(255,255,255,0.1)` and a thin white border.
 - **Hex values in screens** [hardcoded-color] instead of color roles.
@@ -30,11 +32,12 @@ The tells, across all four platforms, in pass order. The id in brackets is what 
 
 - **A new size per label** [type-scale-sprawl, type-outside-scale, fixed-font-size]. 11, 12, 13, 14, 15, 17, 22, 28, 34, 42.
 - **Scaling turned off** [font-scaling-disabled] to keep a layout from breaking.
+- **Layouts that break at large text** (manual): fixed row heights, one-line titles that truncate, text that overlaps at 200% (Android) or the largest accessibility size (iOS).
 - **Shouting copy** (manual): "Crush your goals!", "Let's go!", exclamation marks on buttons, title case everywhere, "Welcome back, Champion".
 
 ## Icons
 
-- **Emoji as icons** [emoji-as-icon]: 🔥 for streaks, 💰 for money, ⚙️ for settings, 🏠 in the tab bar.
+- **Emoji as icons** [emoji-as-icon]: a fire emoji for streaks, a money bag for money, a gear for settings, a house in the tab bar.
 - **Icon buttons with no label** [icon-button-no-label].
 - **Mixed icon sets** (manual): Ionicons next to Material next to emoji.
 
@@ -50,3 +53,7 @@ The tells, across all four platforms, in pass order. The id in brackets is what 
 - **Spinners for everything** (manual): a full-screen spinner where a placeholder in the shape of the content would hold the layout.
 - **Animations everywhere** (manual): every card fades and slides in on mount, numbers count up, nothing respects Reduce Motion.
 - **Empty states with an emoji and "Nothing here yet!"** (manual). An empty state should say what will appear and offer the one action that creates it.
+- **Raw errors or blank screens on failure** (manual): `error.toString()` on screen, or nothing at all. Say what failed and offer a retry.
+- **Images that pop in** (manual): remote images with no placeholder of the final size and no fallback on error.
+- **Hard-coded left and right** (manual, only for apps with right-to-left languages): `paddingLeft`, `EdgeInsets.only(left:)`, chevrons that do not mirror.
+- **Branded splash on a timer** (manual): gradient, logo and tagline held for two or three seconds before the first screen; an app icon with the app name written in it.
