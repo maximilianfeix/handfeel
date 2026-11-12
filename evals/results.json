@@ -6,13 +6,19 @@
       "app": "compose-tasks",
       "platform": "compose",
       "files": 4,
-      "before": 87,
+      "before": 77,
       "beforeBreakdown": [
+        "no-dark-mode -10",
         "no-haptics -6",
         "off-grid-spacing -5",
         "type-outside-scale -1.5",
         "hardcoded-color -0.5"
-      ]
+      ],
+      "after": 100,
+      "afterNoIgnores": 100,
+      "ignoreComments": 0,
+      "remaining": [],
+      "diff": "6 files changed, 262 insertions(+), 109 deletions(-)"
     },
     {
       "app": "expo-budget",
@@ -138,7 +144,15 @@
         "no-press-feedback -2",
         "off-grid-spacing -1",
         "gradient-overuse -0"
-      ]
+      ],
+      "after": 100,
+      "afterNoIgnores": 100,
+      "ignoreComments": 0,
+      "remaining": [
+        "gradient-overuse Sources/RecipesApp/Theme/Theme.swift:47",
+        "gradient-overuse Sources/RecipesApp/Views/RecipeCard.swift:21"
+      ],
+      "diff": "7 files changed, 181 insertions(+), 122 deletions(-)"
     }
   ]
 }

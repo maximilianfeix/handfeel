@@ -75,7 +75,12 @@ export const noDarkMode: Rule = {
         if (anyCode(p, 'flutter', /Brightness\.dark/)) return 'There is only a dark theme: the app ignores the system appearance (no light theme / darkTheme pair).';
         return 'MaterialApp has no darkTheme and nothing reads the platform brightness.';
       },
-      compose: () => (anyCode(p, 'compose', /isSystemInDarkTheme|darkColorScheme|dynamicDarkColorScheme/) ? null : 'No darkColorScheme / isSystemInDarkTheme.'),
+      compose: () => {
+        // a dark scheme behind an in-app switch that defaults to light still ignores the phone's setting
+        if (anyCode(p, 'compose', /isSystemInDarkTheme\s*\(\s*\)/)) return null;
+        if (anyCode(p, 'compose', /darkColorScheme|dynamicDarkColorScheme/)) return 'A dark color scheme exists, but nothing calls isSystemInDarkTheme(), so the app ignores the system setting.';
+        return 'No darkColorScheme / isSystemInDarkTheme.';
+      },
     });
   },
 };
